@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
+using DG.Tweening;
 
 public class MahjongManager : MonoBehaviour
 {
@@ -33,6 +35,12 @@ public class MahjongManager : MonoBehaviour
     
     // 麻将牌实例与类型的映射
     private Dictionary<GameObject, MahjongType> tileTypeMap = new Dictionary<GameObject, MahjongType>();
+
+    [Header("Animation Settings")]
+    public bool enableAnimation = true;
+    public float animationDuration = 1.0f;
+    public float animationHeight = 0.5f;
+    public Ease animationEase = Ease.OutBack;
 
     void Start()
     {
@@ -141,6 +149,14 @@ public class MahjongManager : MonoBehaviour
             // 设置确切的位置和旋转
             racks[i].transform.position = rackPositions[i];
             racks[i].transform.rotation = Quaternion.Euler(rackRotations[i]);
+
+            // 如果启用动画，将牌夹移动到起始位置（下方）
+            if (enableAnimation)
+            {
+                Vector3 startPos = rackPositions[i];
+                startPos.y -= animationHeight;
+                racks[i].transform.position = startPos;
+            }
         }
 
         // 麻将牌尺寸与间隔
@@ -222,6 +238,12 @@ public class MahjongManager : MonoBehaviour
         }
         
         Debug.Log("总共创建了 " + totalTilesCreated + " 张实体麻将牌");
+
+        // 如果启用动画，使用DOTween执行动画
+        if (enableAnimation)
+        {
+            AnimateRacks(racks, rackPositions);
+        }
     }
     
     // 应用麻将牌纹理（这里只是示例，需要根据实际资源进行适配）
@@ -297,5 +319,17 @@ public class MahjongManager : MonoBehaviour
         // 如果找不到，返回默认值
         Debug.LogWarning("找不到该麻将牌的类型");
         return MahjongType.Dot1;
+    }
+
+    // 使用DOTween实现动画
+    private void AnimateRacks(GameObject[] racks, Vector3[] targetPositions)
+    {
+        for (int i = 0; i < racks.Length; i++)
+        {
+            racks[i].transform
+                .DOMove(targetPositions[i], animationDuration)
+                .SetEase(animationEase)
+                .SetDelay(1f); // 添加一个小的延迟，使动画更有层次感
+        }
     }
 } 
