@@ -42,6 +42,9 @@ public class MahjongManager : MonoBehaviour
     public float animationHeight = 0.5f;
     public Ease animationEase = Ease.OutBack;
 
+    private GameObject[] lastRacks;
+    private Vector3[] lastRackPositions;
+    private Animator tableAnimator;
     void Start()
     {
         // 查找麻将桌
@@ -151,12 +154,12 @@ public class MahjongManager : MonoBehaviour
             racks[i].transform.rotation = Quaternion.Euler(rackRotations[i]);
 
             // 如果启用动画，将牌夹移动到起始位置（下方）
-            if (enableAnimation)
-            {
+            // if (enableAnimation)
+            // {
                 Vector3 startPos = rackPositions[i];
                 startPos.y -= animationHeight;
                 racks[i].transform.position = startPos;
-            }
+            // }
         }
 
         // 麻将牌尺寸与间隔
@@ -240,10 +243,14 @@ public class MahjongManager : MonoBehaviour
         Debug.Log("总共创建了 " + totalTilesCreated + " 张实体麻将牌");
 
         // 如果启用动画，使用DOTween执行动画
-        if (enableAnimation)
-        {
-            AnimateRacks(racks, rackPositions);
-        }
+        // if (enableAnimation)
+        // {
+        //     AnimateRacks(racks, rackPositions);
+        // }
+
+        // 保存最近一次创建的 racks 和 rackPositions
+        lastRacks = racks;
+        lastRackPositions = rackPositions;
     }
     
     // 应用麻将牌纹理（这里只是示例，需要根据实际资源进行适配）
@@ -324,6 +331,7 @@ public class MahjongManager : MonoBehaviour
     // 使用DOTween实现动画
     private void AnimateRacks(GameObject[] racks, Vector3[] targetPositions)
     {
+        Debug.Log("AnimateRacks");
         for (int i = 0; i < racks.Length; i++)
         {
             racks[i].transform
@@ -331,5 +339,22 @@ public class MahjongManager : MonoBehaviour
                 .SetEase(animationEase)
                 .SetDelay(1f); // 添加一个小的延迟，使动画更有层次感
         }
+    }
+
+    // 公有方法：外部触发动画
+    public void PlayRackAnimation()
+    {
+        Debug.Log("PlayRackAnimation");
+        Debug.Log("enableAnimation: " + enableAnimation);
+        Debug.Log("lastRacks: " + lastRacks);
+        Debug.Log("lastRackPositions: " + lastRackPositions);
+        if (lastRacks != null && lastRackPositions != null)
+        {
+            AnimateRacks(lastRacks, lastRackPositions);
+        }
+        tableAnimator = mahjongTable.GetComponent<Animator>();
+        tableAnimator.SetFloat("Blend", 1f);
+        // tableAnimator.SetTrigger("ShuffleTrigger");
+        // tableAnimator.SetTrigger("ShuffleTrigger");
     }
 } 
