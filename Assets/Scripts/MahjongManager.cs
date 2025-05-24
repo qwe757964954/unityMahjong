@@ -38,7 +38,7 @@ public class MahjongManager : MonoBehaviour
 
     [Header("Animation Settings")]
     public bool enableAnimation = true;
-    public float animationDuration = 1.0f;
+    public float animationDuration = 0.0f;
     public float animationHeight = 0.5f;
     public Ease animationEase = Ease.OutBack;
 
@@ -125,43 +125,33 @@ public class MahjongManager : MonoBehaviour
         // 根据用户手动设置的确切位置
         Vector3[] rackPositions = new Vector3[4]
         {
-            new Vector3(-0.0123f, 0.001f, 0.355f),     // 上方（远）
-            new Vector3(-0.355f, 0.001f, 0.02f),    // 左方
-            new Vector3(0.018f, 0.02f, -0.366f),    // 下方（近）
-            new Vector3(0.355f, 0.001f, -0.02f)      // 右方
+            new Vector3(0.0175f, 0.009f, 0.357f),     // 下方（近）
+            new Vector3(0.357f, 0.009f, -0.0175f),    // 左方
+            new Vector3(0.0175f, 0.009f, -0.357f),    // 上方（远）
+            new Vector3(-0.355f, 0.009f, 0.0175f)      // 右方
         };
-
         // 确切的旋转角度
         Vector3[] rackRotations = new Vector3[4]
         {
-            new Vector3(0, 180, 0),  // 上方（远）
-            new Vector3(0, 270, 0),  // 左方
-            new Vector3(0, 0, 0),    // 下方（近）
-            new Vector3(0, 90, 0)    // 右方
+            new Vector3(0, 0, 0),  // 下方（近）
+            new Vector3(0, 90, 0),  // 左方
+            new Vector3(0, 0, 0),    // 上方（远）
+            new Vector3(0, -90, 0)    // 右方
         };
-
+        string[] anchorNames = { "Anchor_Down", "Anchor_Left", "Anchor_Up", "Anchor_Right" };
         // 创建4个父对象作为牌夹
         GameObject[] racks = new GameObject[4];
         for (int i = 0; i < 4; i++)
         {
-            racks[i] = new GameObject("MahjongRack_" + i);
-            
-            // 设置牌夹的父对象
-            racks[i].transform.SetParent(this.transform);
-            
+            Transform anchor = tableTransform.Find(anchorNames[i]);
             // 设置确切的位置和旋转
-            racks[i].transform.position = rackPositions[i];
-            racks[i].transform.rotation = Quaternion.Euler(rackRotations[i]);
-
-            // 如果启用动画，将牌夹移动到起始位置（下方）
-            // if (enableAnimation)
-            // {
-                Vector3 startPos = rackPositions[i];
-                startPos.y -= animationHeight;
-                racks[i].transform.position = startPos;
-            // }
+            Vector3 startPos = rackPositions[i];
+            startPos.y -= animationHeight;
+            racks[i] = new GameObject("MahjongRack_" + i);
+            racks[i].transform.SetParent(anchor, false); // false 表示不保持世界坐标，直接继承父物体的本地坐标系
+            racks[i].transform.localPosition = startPos; // 只设置本地坐标
+            racks[i].transform.localRotation = Quaternion.Euler(rackRotations[i]); // 只设置本地旋转
         }
-
         // 麻将牌尺寸与间隔
         float tileWidth = 0.035f;      // 麻将牌宽度
         float tileDepth = 0.02f;       // 麻将牌厚度
@@ -334,10 +324,7 @@ public class MahjongManager : MonoBehaviour
         Debug.Log("AnimateRacks");
         for (int i = 0; i < racks.Length; i++)
         {
-            racks[i].transform
-                .DOMove(targetPositions[i], animationDuration)
-                .SetEase(animationEase)
-                .SetDelay(1f); // 添加一个小的延迟，使动画更有层次感
+            racks[i].transform.localPosition = targetPositions[i]; // 只设置本地坐标
         }
     }
 
@@ -354,7 +341,5 @@ public class MahjongManager : MonoBehaviour
         }
         tableAnimator = mahjongTable.GetComponent<Animator>();
         tableAnimator.SetFloat("Blend", 1f);
-        // tableAnimator.SetTrigger("ShuffleTrigger");
-        // tableAnimator.SetTrigger("ShuffleTrigger");
     }
 } 
