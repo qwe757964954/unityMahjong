@@ -48,6 +48,7 @@
     <Compile Include="Assets\Scripts\MahjongTableFitter.cs" />
     <Compile Include="Assets\Scripts\MahjongDisplay.cs" />
     <Compile Include="Assets\Scripts\DiceController.cs" />
+    <Compile Include="Assets\Scripts\ObjectPool.cs" />
     <Compile Include="Assets\Scripts\MahjongManager.cs" />
     <Compile Include="Assets\TutorialInfo\Scripts\Readme.cs" />
     <Compile Include="Assets\Scripts\HandOperationCanvas.cs" />
@@ -55,6 +56,7 @@
     <Compile Include="Assets\Scripts\DiceShaker.cs" />
     <Compile Include="Assets\Scripts\MahjongSetup.cs" />
     <Compile Include="Assets\Scripts\DiceFaceReader.cs" />
+    <Compile Include="Assets\Scripts\MahjongTileData.cs" />
     <None Include="Assets\WX-WASM-SDK-V2\package.json" />
     <None Include="Assets\WX-WASM-SDK-V2\mainifest.json" />
     <Reference Include="UnityEngine">
