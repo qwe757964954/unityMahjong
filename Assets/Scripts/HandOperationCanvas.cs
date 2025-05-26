@@ -213,13 +213,17 @@ namespace MahjongGame
                 GameObject tile = allTiles[0];
                 allTiles.RemoveAt(0);
                 tile.transform.SetParent(anchor);
-                float pos = start + playerCardCounts[player] * (TILE_WIDTH + TILE_SPACING);
+
+                // 修改：从左往右排列牌
+                float pos = start + (totalCards - 1 - playerCardCounts[player]) * (TILE_WIDTH + TILE_SPACING);
                 tile.transform.position = anchor.position + anchor.right * pos;
+
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
                 playerCardCounts[player]++;
                 yield return new WaitForSeconds(WAIT_DURATION);
             }
         }
+
 
         private void DrawTile()
         {
