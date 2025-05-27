@@ -12,10 +12,10 @@ namespace MahjongGame
         [Header("Mahjong Setup")]
         public GameObject mahjongPrefab;
         [SerializeField] private GameObject mahjongTable;
-        
+
         [Header("Game Rules")]
         public IMahjongRule gameRule = new StandardMahjongRule();
-        
+
         [Header("Components")]
         public TileAnimator tileAnimator;
 
@@ -66,7 +66,7 @@ namespace MahjongGame
             }
 
             tableAnimator = mahjongTable.GetComponent<Animator>();
-            
+
             if (tileAnimator == null)
             {
                 tileAnimator = GetComponent<TileAnimator>() ?? gameObject.AddComponent<TileAnimator>();
@@ -252,11 +252,11 @@ namespace MahjongGame
 
             tileData.SetGameObject(tileObj);
             tileObj.transform.SetParent(rack.transform, false);
-            
+
             Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex);
             tileObj.transform.localPosition = localPos;
             tileObj.transform.localRotation = GetTileRotation(rackIndex);
-            
+
             tileObj.name = $"Mahjong_{rackIndex}_{tileIndex}";
             activeTiles.Add(tileData);
         }
@@ -265,10 +265,10 @@ namespace MahjongGame
         {
             int col = tileIndex / 2;
             int row = 1 - (tileIndex % 2);
-            
+
             float rowWidth = 17 * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) - MahjongConfig.TileSpacing;
             float start = -rowWidth / 2f;
-            
+
             bool reverse = rackIndex == 1 || rackIndex == 2;
             float pos = reverse ? start + (16 - col) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing)
                                 : start + col * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
@@ -288,8 +288,7 @@ namespace MahjongGame
                 _ => Quaternion.identity
             };
         }
-
-        public async UniTask<MahjongTile> DrawTileAsync(Transform handAnchor, CancellationToken cancellationToken = default)
+        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, bool isReveal = true, CancellationToken cancellationToken = default)
         {
             if (!enabled)
             {
@@ -309,33 +308,79 @@ namespace MahjongGame
                 return null;
             }
 
+            Transform handAnchor = GetHandAnchor(playerIndex, isReveal);
+            if (handAnchor == null)
+            {
+                Debug.LogError($"Hand anchor for player {playerIndex} not found.");
+                return null;
+            }
+
             try
             {
                 GameObject tileObj = tilePool.Get();
-                if (tileObj == null) return null;
+                if (tileObj == null)
+                {
+                    Debug.LogWarning("Failed to retrieve tile from pool.");
+                    return null;
+                }
 
                 MahjongTile tile = tileDeck[0];
                 tileDeck.RemoveAt(0);
-                
+
                 tile.SetGameObject(tileObj);
                 tile.SetParent(handAnchor);
-                tile.SetLocalPosition(Vector3.zero);
-                
+
+                int tileCount = handAnchor.childCount;
+                float totalWidth = tileCount * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
+                float offset = -totalWidth / 2f + (tileCount * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing)) + (MahjongConfig.TileWidth / 2f);
+
+                Vector3 localPos = (playerIndex == 1 || playerIndex == 3) ?
+                    new Vector3(0f, 0f, offset) : new Vector3(offset, 0f, 0f);
+                tile.SetLocalPosition(localPos);
+
+                tileObj.transform.localRotation = isReveal ?
+                    Quaternion.Euler(-90f, 0f, 0f) : Quaternion.Euler(90f, 0f, 0f);
+
                 if (tileAnimator != null)
                 {
-                    await tileAnimator.AnimateDrawAsync(tile, tile.GameObject.transform.localPosition, cancellationToken);
+                    await tileAnimator.AnimateDrawAsync(tile, localPos, cancellationToken);
                 }
-                
+
                 activeTiles.Add(tile);
+                Debug.Log($"Drew tile for Player {playerIndex}: {tile.Suit} {tile.Number} at {localPos}");
                 return tile;
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Debug.LogError($"Failed to draw tile: {e.Message}");
+                Debug.LogError($"Failed to draw tile for player {playerIndex}: {ex.Message}");
                 return null;
             }
         }
 
+        private Transform GetHandAnchor(int playerIndex, bool isReveal)
+        {
+            if (mahjongTable == null)
+            {
+                Debug.LogError("MahjongTable is not assigned.");
+                return null;
+            }
+
+            string anchorName = anchorNames[playerIndex];
+            Transform anchor = mahjongTable.transform.Find(anchorName);
+            if (anchor == null)
+            {
+                Debug.LogError($"Anchor {anchorName} not found on MahjongTable.");
+                return null;
+            }
+
+            Transform handOffset = anchor.Find($"HandOffset_{playerIndex}");
+            if (handOffset == null)
+            {
+                handOffset = CreateHandOffset(anchor, playerIndex, isReveal);
+            }
+
+            return handOffset;
+        }
         public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor, CancellationToken cancellationToken = default)
         {
             if (!enabled)
@@ -354,12 +399,12 @@ namespace MahjongGame
             {
                 tile.SetParent(discardAnchor);
                 Vector3 discardPos = Vector3.zero;
-                
+
                 if (tileAnimator != null)
                 {
                     await tileAnimator.AnimateDiscardAsync(tile, discardPos, cancellationToken);
                 }
-                
+
                 activeTiles.Remove(tile);
                 return true;
             }

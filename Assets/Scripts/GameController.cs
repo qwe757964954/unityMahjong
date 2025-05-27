@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Collections;
 using Cysharp.Threading.Tasks; // For UniTask
 using System.Threading;
-
+using System;
 namespace MahjongGame
 {
     public class GameController : MonoBehaviour
@@ -13,7 +13,7 @@ namespace MahjongGame
         public EnhancedMahjongManager mahjongManager;
         public HandOperationCanvas handCanvas;
         public TileAnimator tileAnimator;
-        
+
         [Header("Audio")]
         public AudioSource audioSource;
         public AudioClip drawSound;
@@ -65,20 +65,26 @@ namespace MahjongGame
         /// <summary>
         /// Draws a tile and plays the draw sound.
         /// </summary>
-        public async UniTask DrawTileAsync(Transform handAnchor, CancellationToken cancellationToken = default)
+        private async UniTask DrawTileAsync(CancellationToken cancellationToken)
         {
+            if (mahjongManager == null)
+            {
+                Debug.LogError("MahjongManager is null or disabled.");
+                return;
+            }
+
             try
             {
-                MahjongTile tile = await mahjongManager.DrawTileAsync(handAnchor, cancellationToken);
+                int playerIndex = 0; // Down player; adjust based on game logic
+                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, true, cancellationToken);
                 if (tile != null)
                 {
-                    PlaySound(drawSound);
                     Debug.Log($"Drew tile: {tile.Suit} {tile.Number}");
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                Debug.LogError($"Failed to draw tile: {ex.Message}");
+                Debug.LogError($"DrawTileAsync failed: {ex.Message}");
             }
         }
 
@@ -112,9 +118,9 @@ namespace MahjongGame
 
         public void AddHapticFeedback()
         {
-            #if UNITY_ANDROID || UNITY_IOS
+#if UNITY_ANDROID || UNITY_IOS
             Handheld.Vibrate();
-            #endif
+#endif
         }
     }
 }
