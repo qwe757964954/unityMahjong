@@ -87,7 +87,7 @@ namespace MahjongGame
                     return;
                 }
 
-                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
+                await UniTask.Delay(TimeSpan.FromSeconds(0.1f), cancellationToken: cancellationToken);
                 await mahjongManager.PlayRackAnimationAsync(cancellationToken);
                 await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
 

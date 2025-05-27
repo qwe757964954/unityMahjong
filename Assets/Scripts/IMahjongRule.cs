@@ -7,7 +7,7 @@ namespace MahjongGame
     {
         int TilesPerPlayer { get; }
         int TotalTiles { get; }
-        void InitializeDeck(List<MahjongTile> deck);
+        void InitializeTileDeck(List<MahjongTile> deck);
         bool IsValidHand(List<MahjongTile> hand);
         bool CanWin(List<MahjongTile> hand);
     }
@@ -17,7 +17,7 @@ namespace MahjongGame
         public int TilesPerPlayer => 34;
         public int TotalTiles => 136;
 
-        public void InitializeDeck(List<MahjongTile> deck)
+        public void InitializeTileDeck(List<MahjongTile> deck)
         {
             // Standard 136-tile deck initialization
             deck.Clear();
