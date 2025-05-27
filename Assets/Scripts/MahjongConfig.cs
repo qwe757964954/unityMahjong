@@ -19,6 +19,10 @@ namespace MahjongGame
         public static float HandOffsetY { get; } = -0.05f;
         public static float HandOffsetDistance { get; } = 0.08f;
 
+        // Reveal positioning (for game end)
+        public static Vector3 RevealHandPositionDown { get; } = new Vector3(0.0455f, 0.709f, 0.693f);
+        public static float RevealHandRotationX { get; } = -38f;
+
         // Animation settings
         public static float AnimationDuration { get; } = 0.5f;
         public static float DealAnimationDelay { get; } = 0.1f;

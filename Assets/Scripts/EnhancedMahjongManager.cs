@@ -407,7 +407,7 @@ namespace MahjongGame
             try
             {
                 int startIndex = (dice1 + dice2 - 1) % 4;
-                Transform[] anchorTransforms = InitializeHandAnchors();
+                Transform[] anchorTransforms = InitializeHandAnchors(true); // Regular hand offsets
                 List<GameObject> allTiles = GetActiveTiles();
 
                 if (allTiles == null || allTiles.Count < 54)
@@ -445,7 +445,50 @@ namespace MahjongGame
             }
         }
 
-        private Transform[] InitializeHandAnchors()
+        public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
+        {
+            if (!enabled || mahjongTable == null)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled or MahjongTable is null.");
+                return false;
+            }
+
+            try
+            {
+                Transform[] revealAnchors = InitializeHandAnchors(true); // Reveal offsets
+                List<GameObject> allTiles = GetActiveTiles();
+
+                if (allTiles == null || allTiles.Count < 54)
+                {
+                    Debug.LogError($"Not enough tiles to reveal hand cards. Available: {allTiles?.Count ?? 0}");
+                    return false;
+                }
+
+                int[] playerCardCounts = new int[4];
+                int[] handTotals = InitializeHandTotals(0); // Assume Down player as East for simplicity
+
+                for (int player = 0; player < 4; player++)
+                {
+                    Transform anchor = revealAnchors[player];
+                    if (anchor == null) continue;
+
+                    List<GameObject> playerTiles = allTiles.Take(handTotals[player]).ToList();
+                    allTiles.RemoveRange(0, playerTiles.Count);
+
+                    await RepositionHandCardsAsync(player, handTotals[player], anchor, playerTiles, playerCardCounts, cancellationToken);
+                }
+
+                Debug.Log("Hand cards revealed!");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"RevealHandCardsAsync failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private Transform[] InitializeHandAnchors(bool isReveal)
         {
             Transform[] anchorTransforms = new Transform[4];
             for (int i = 0; i < 4; i++)
@@ -457,37 +500,43 @@ namespace MahjongGame
                     continue;
                 }
 
-                Transform handOffset = anchor.Find($"HandOffset_{i}") ?? CreateHandOffset(anchor, i);
+                Transform handOffset = anchor.Find($"HandOffset_{i}") ?? CreateHandOffset(anchor, i, isReveal);
                 anchorTransforms[i] = handOffset;
             }
             return anchorTransforms;
         }
 
-        private Transform CreateHandOffset(Transform anchor, int i)
+        private Transform CreateHandOffset(Transform anchor, int i, bool isReveal)
         {
             Transform rackOffset = anchor.childCount > 0 && anchor.GetChild(0).name == $"RackOffset_{i}" ? anchor.GetChild(0) : anchor;
-            Vector3 offsetDirWorld = GetHandOffsetDirection(i);
+            Vector3 offsetDirWorld = GetHandOffsetDirection(i, isReveal);
             Vector3 offsetDirLocal = anchor.InverseTransformDirection(offsetDirWorld);
             Transform newHand = new GameObject($"HandOffset_{i}").transform;
             newHand.SetParent(anchor, false);
 
             Vector3 basePos = rackOffset.localPosition + offsetDirLocal;
-            basePos.y = MahjongConfig.HandOffsetY;
+            // 使用三元表达式直接赋值，消除冗余代码块
+            basePos.y = isReveal && i == 0 ? basePos.y : MahjongConfig.HandOffsetY;
             newHand.localPosition = basePos;
 
-            Quaternion rot = GetHandRotation(i);
+            Quaternion rot = isReveal && i == 0 ? Quaternion.Euler(MahjongConfig.RevealHandRotationX, 0, 0) : GetHandRotation(i);
             newHand.localRotation = rot;
 
             return newHand;
         }
 
-        private Vector3 GetHandOffsetDirection(int i)
+        private Vector3 GetHandOffsetDirection(int i, bool isReveal)
         {
+            if (isReveal && i == 0)
+            {
+                return MahjongConfig.RevealHandPositionDown;
+            }
+
             return i switch
             {
                 0 => new Vector3(0, 0, MahjongConfig.HandOffsetDistance),
                 1 => new Vector3(MahjongConfig.HandOffsetDistance, 0, 0),
-                2 => new Vector3(0, 0, -MahjongConfig.HandOffsetDistance / 2f),
+                2 => new Vector3(0, 0, -MahjongConfig.HandOffsetDistance),
                 3 => new Vector3(-MahjongConfig.HandOffsetDistance, 0, 0),
                 _ => Vector3.zero
             };
@@ -515,7 +564,7 @@ namespace MahjongGame
             return handTotals;
         }
 
-        private async UniTask DealHandCardsAsync(int player, int count, int totalCards, Transform[] anchorTransforms, List<GameObject> allTiles, int[] playerCardCounts, CancellationToken cancellationToken)
+        private async UniTask DealHandCardsAsync(int player, int count, int totalCards, Transform[] anchorTransforms, List<GameObject> handCards, int[] playerCardCounts, CancellationToken cancellationToken)
         {
             if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
             {
@@ -526,10 +575,34 @@ namespace MahjongGame
             float rowWidth = totalCards * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) - MahjongConfig.TileSpacing;
             float start = -rowWidth / 2f;
 
-            for (int j = 0; j < count && allTiles.Count > 0; j++)
+            for (int j = 0; j < count && handCards.Count > 0; j++)
             {
-                GameObject tile = allTiles[0];
-                allTiles.RemoveAt(0);
+                GameObject tile = handCards[0];
+                handCards.RemoveAt(0);
+                tile.transform.SetParent(anchor);
+
+                float pos = start + (totalCards - 1 - playerCardCounts[player]) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
+                tile.transform.position = anchor.position + anchor.right * pos;
+                tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+
+                playerCardCounts[player]++;
+                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.DealAnimationDelay), cancellationToken: cancellationToken);
+            }
+        }
+
+        private async UniTask RepositionHandCardsAsync(int player, int totalCards, Transform anchor, List<GameObject> playerTiles, int[] playerCardCounts, CancellationToken cancellationToken)
+        {
+            if (anchor == null || playerCardCounts[player] >= totalCards)
+            {
+                return;
+            }
+
+            float rowWidth = totalCards * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) - MahjongConfig.TileSpacing;
+            float start = -rowWidth / 2f;
+
+            for (int j = 0; j < playerTiles.Count; j++)
+            {
+                GameObject tile = playerTiles[j];
                 tile.transform.SetParent(anchor);
 
                 float pos = start + (totalCards - 1 - playerCardCounts[player]) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
