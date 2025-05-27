@@ -14,7 +14,7 @@ namespace MahjongGame
 
     public class StandardMahjongRule : IMahjongRule
     {
-        public int TilesPerPlayer => 13;
+        public int TilesPerPlayer => 34;
         public int TotalTiles => 136;
 
         public void InitializeDeck(List<MahjongTile> deck)

@@ -59,6 +59,7 @@
     <Compile Include="Assets\Plugins\Demigiant\DOTweenPro\DOTweenAnimation.cs" />
     <Compile Include="Assets\Plugins\Demigiant\DOTweenPro\DOTweenDeUnityExtended.cs" />
     <Compile Include="Assets\Plugins\Demigiant\DOTween\Modules\DOTweenModuleUI.cs" />
+    <None Include="Assets\Plugins\UniTask\package.json" />
     <None Include="Assets\Plugins\Demigiant\readme_DOTweenPro.txt" />
     <None Include="Assets\Plugins\Demigiant\DOTweenPro\readme.txt" />
     <None Include="Assets\Plugins\Demigiant\DemiLib\Core\DemiLib.xml" />
@@ -812,13 +813,33 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="UniTask.Addressables.csproj">
+      <Project>{40be8ede-238e-1714-ed43-08ec56210c5d}</Project>
+      <Name>UniTask.Addressables</Name>
+    </ProjectReference>
+    <ProjectReference Include="UniTask.Linq.csproj">
+      <Project>{9a6777ee-8171-5849-a184-b124cc742178}</Project>
+      <Name>UniTask.Linq</Name>
+    </ProjectReference>
     <ProjectReference Include="Wx.csproj">
       <Project>{3aa61121-aa76-77e5-a1e9-914efbd25e05}</Project>
       <Name>Wx</Name>
     </ProjectReference>
+    <ProjectReference Include="UniTask.csproj">
+      <Project>{b5832ecb-4e4e-4c81-6aec-cfc74ef8a31b}</Project>
+      <Name>UniTask</Name>
+    </ProjectReference>
     <ProjectReference Include="WxEditor.csproj">
       <Project>{541f016e-9258-6e26-0915-c2ef4c5e0d29}</Project>
       <Name>WxEditor</Name>
+    </ProjectReference>
+    <ProjectReference Include="UniTask.TextMeshPro.csproj">
+      <Project>{354f3162-8cc1-da7f-3af7-905dfa7b1254}</Project>
+      <Name>UniTask.TextMeshPro</Name>
+    </ProjectReference>
+    <ProjectReference Include="UniTask.DOTween.csproj">
+      <Project>{b8ada559-5db8-5d7c-5c9d-1b7bafebde2e}</Project>
+      <Name>UniTask.DOTween</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

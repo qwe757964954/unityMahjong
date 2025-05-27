@@ -1,15 +1,12 @@
-﻿
-// ========== Enhanced MahjongManager ==========
-using UnityEngine;
-using System.Collections;
+﻿using UnityEngine;
+using Cysharp.Threading.Tasks;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace MahjongGame
 {
-    /// <summary>
-    /// Enhanced Mahjong Manager with improved architecture and error handling
-    /// </summary>
     public class EnhancedMahjongManager : MonoBehaviour
     {
         [Header("Mahjong Setup")]
@@ -22,119 +19,147 @@ namespace MahjongGame
         [Header("Components")]
         public TileAnimator tileAnimator;
 
-        // Properties
         public GameObject MahjongTable
         {
-            get { return mahjongTable; }
-            set { mahjongTable = value; }
+            get => mahjongTable;
+            set => mahjongTable = value;
         }
 
-        // Private fields
         private EnhancedObjectPool tilePool;
         private List<MahjongTile> activeTiles = new List<MahjongTile>();
         private List<MahjongTile> tileDeck = new List<MahjongTile>();
         private GameState currentState = GameState.Idle;
         private Animator tableAnimator;
 
-        // Constants
         private readonly string[] anchorNames = { "Anchor_Down", "Anchor_Left", "Anchor_Up", "Anchor_Right" };
-        private readonly Vector3[] rackPositions = {
-            new Vector3(0.0175f, -0.057f, 0.429f),   // Down
-            new Vector3(0.429f, -0.057f, 0.0175f),   // Left
-            new Vector3(0.0175f, -0.057f, -0.429f),  // Up
-            new Vector3(-0.429f, -0.057f, 0.0175f)   // Right
-        };
 
-        private void Start()
+        private void Awake()
         {
             InitializeComponents();
         }
 
         private void InitializeComponents()
         {
-            // Validate required references
             if (mahjongPrefab == null)
             {
-                Debug.LogError("MahjongPrefab is not assigned!");
+                Debug.LogError("MahjongPrefab is not assigned in EnhancedMahjongManager. Disabling component.");
+                enabled = false;
                 return;
             }
 
             if (mahjongTable == null)
             {
-                Debug.LogError("MahjongTable is not assigned!");
+                Debug.LogError("MahjongTable is not assigned in EnhancedMahjongManager. Disabling component.");
+                enabled = false;
                 return;
             }
 
-            // Initialize object pool
-            tilePool = new EnhancedObjectPool(mahjongPrefab, mahjongTable.transform, MahjongConfig.DefaultPoolSize);
-            
-            // Get table animator
+            try
+            {
+                tilePool = new EnhancedObjectPool(mahjongPrefab, mahjongTable.transform, MahjongConfig.DefaultPoolSize);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to initialize tilePool: {ex.Message}. Disabling component.");
+                enabled = false;
+                return;
+            }
+
             tableAnimator = mahjongTable.GetComponent<Animator>();
             
-            // Get or create tile animator
             if (tileAnimator == null)
             {
                 tileAnimator = GetComponent<TileAnimator>() ?? gameObject.AddComponent<TileAnimator>();
             }
+
+            if (gameRule == null)
+            {
+                Debug.LogError("GameRule is not assigned in EnhancedMahjongManager. Disabling component.");
+                enabled = false;
+                return;
+            }
         }
 
-        /// <summary>
-        /// Initialize the mahjong game with tiles
-        /// </summary>
-        public IEnumerator InitializeGameRoutine()
+        public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
+        {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled due to missing or invalid components.");
+                return false;
+            }
+
+            bool isSuccess = false;
+            try
+            {
+                isSuccess = await InitializeGameSafeAsync(cancellationToken);
+                currentState = isSuccess ? GameState.Playing : GameState.Idle;
+                if (isSuccess)
+                {
+                    Debug.Log("Game initialized successfully!");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Failed to initialize game: {ex.Message}");
+                currentState = GameState.Idle;
+            }
+            return isSuccess;
+        }
+
+        private async UniTask<bool> InitializeGameSafeAsync(CancellationToken cancellationToken)
         {
             try
             {
                 currentState = GameState.Shuffling;
-                yield return StartCoroutine(ShuffleTilesRoutine());
-                
+                await ShuffleTilesAsync(cancellationToken);
+                if (tileDeck.Count == 0)
+                {
+                    Debug.LogError("No tiles available after shuffling.");
+                    return false;
+                }
+
                 currentState = GameState.Dealing;
-                yield return StartCoroutine(DealTilesRoutine());
-                
-                currentState = GameState.Playing;
-                Debug.Log("Game initialized successfully!");
+                await DealTilesAsync(cancellationToken);
+                return true;
             }
-            catch (System.Exception e)
+            catch (Exception ex)
             {
-                Debug.LogError($"Failed to initialize game: {e.Message}");
-                currentState = GameState.Idle;
+                Debug.LogError($"InitializeGameSafeAsync failed: {ex.Message}");
+                return false;
             }
         }
 
-        private IEnumerator ShuffleTilesRoutine()
+        private async UniTask ShuffleTilesAsync(CancellationToken cancellationToken)
         {
+            if (tilePool == null)
+            {
+                Debug.LogError("TilePool is not initialized. Cannot shuffle tiles.");
+                return;
+            }
+
+            if (gameRule == null)
+            {
+                Debug.LogError("GameRule is null. Cannot initialize deck.");
+                return;
+            }
+
             ClearTiles();
-            
-            // Generate all tiles using rule
             gameRule.InitializeDeck(tileDeck);
-            
-            // Shuffle the deck
             ShuffleTiles(tileDeck);
-            
-            yield return new WaitForSeconds(MahjongConfig.AnimationDuration);
+            await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.AnimationDuration), cancellationToken: cancellationToken);
             Debug.Log($"Tiles shuffled! Total tiles: {tileDeck.Count}");
         }
 
-        private void ShuffleTiles(List<MahjongTile> tiles)
-        {
-            var random = new System.Random();
-            for (int i = tiles.Count - 1; i > 0; i--)
-            {
-                int j = random.Next(i + 1);
-                (tiles[i], tiles[j]) = (tiles[j], tiles[i]);
-            }
-        }
-
-        private IEnumerator DealTilesRoutine()
+        private async UniTask DealTilesAsync(CancellationToken cancellationToken)
         {
             if (tileDeck.Count == 0)
             {
                 Debug.LogError("No tiles in deck to deal!");
-                yield break;
+                return;
             }
 
             CreateTilesOnRacks();
-            yield return new WaitForSeconds(MahjongConfig.AnimationDuration);
+            await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.AnimationDuration), cancellationToken: cancellationToken);
             Debug.Log("Tiles dealt to racks!");
         }
 
@@ -147,15 +172,24 @@ namespace MahjongGame
                 return;
             }
 
-            // Create rack offsets
+            if (gameRule == null)
+            {
+                Debug.LogError("GameRule is null. Cannot access TilesPerPlayer.");
+                return;
+            }
+
             GameObject[] racks = CreateRackOffsets(tableTransform);
-            
-            // Deal tiles to racks
             int tilesPerRack = gameRule.TilesPerPlayer;
             int tileIndex = 0;
 
             for (int rackIndex = 0; rackIndex < 4 && tileIndex < tileDeck.Count; rackIndex++)
             {
+                if (racks[rackIndex] == null)
+                {
+                    Debug.LogError($"Rack {rackIndex} is null. Skipping.");
+                    continue;
+                }
+
                 for (int i = 0; i < tilesPerRack && tileIndex < tileDeck.Count; i++)
                 {
                     CreateTileOnRack(racks[rackIndex], rackIndex, i, tileDeck[tileIndex]);
@@ -167,13 +201,14 @@ namespace MahjongGame
         private GameObject[] CreateRackOffsets(Transform tableTransform)
         {
             GameObject[] racks = new GameObject[4];
-            
+            bool anyRackCreated = false;
+
             for (int i = 0; i < 4; i++)
             {
                 Transform anchor = tableTransform.Find(anchorNames[i]);
                 if (anchor == null)
                 {
-                    Debug.LogError($"Anchor not found: {anchorNames[i]}");
+                    Debug.LogError($"Anchor not found: {anchorNames[i]} on MahjongTable.");
                     continue;
                 }
 
@@ -183,39 +218,46 @@ namespace MahjongGame
                     GameObject rackOffset = new GameObject($"RackOffset_{i}");
                     offset = rackOffset.transform;
                     offset.SetParent(anchor, false);
-                    offset.localPosition = rackPositions[i];
+                    offset.localPosition = MahjongConfig.RackPositions[i];
                 }
-                
+
                 racks[i] = offset.gameObject;
+                anyRackCreated = true;
             }
-            
+
+            if (!anyRackCreated)
+            {
+                Debug.LogError("No racks created. Check MahjongTable hierarchy for anchors.");
+            }
+
             return racks;
         }
 
         private void CreateTileOnRack(GameObject rack, int rackIndex, int tileIndex, MahjongTile tileData)
         {
+            if (tilePool == null)
+            {
+                Debug.LogError("TilePool is not initialized.");
+                return;
+            }
+
+            if (rack == null)
+            {
+                Debug.LogError($"Rack {rackIndex} is null. Cannot create tile.");
+                return;
+            }
+
             GameObject tileObj = tilePool.Get();
             if (tileObj == null) return;
 
-            // Set up the tile
-            tileData.GameObject = tileObj;
+            tileData.SetGameObject(tileObj);
             tileObj.transform.SetParent(rack.transform, false);
             
-            // Calculate position
             Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex);
             tileObj.transform.localPosition = localPos;
             tileObj.transform.localRotation = GetTileRotation(rackIndex);
             
-            // Set tile name and display
             tileObj.name = $"Mahjong_{rackIndex}_{tileIndex}";
-            
-            // Update display
-            var display = tileObj.GetComponent<MahjongDisplay>();
-            if (display != null)
-            {
-                display.SetType(tileData.Type);
-            }
-            
             activeTiles.Add(tileData);
         }
 
@@ -247,11 +289,20 @@ namespace MahjongGame
             };
         }
 
-        /// <summary>
-        /// Draw a tile from the deck
-        /// </summary>
-        public MahjongTile DrawTile(Transform handAnchor)
+        public async UniTask<MahjongTile> DrawTileAsync(Transform handAnchor, CancellationToken cancellationToken = default)
         {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled. Cannot draw tile.");
+                return null;
+            }
+
+            if (tilePool == null)
+            {
+                Debug.LogError("TilePool is not initialized. Cannot draw tile.");
+                return null;
+            }
+
             if (tileDeck.Count == 0)
             {
                 Debug.LogWarning("No more tiles in deck to draw!");
@@ -266,30 +317,33 @@ namespace MahjongGame
                 MahjongTile tile = tileDeck[0];
                 tileDeck.RemoveAt(0);
                 
-                tile.GameObject = tileObj;
+                tile.SetGameObject(tileObj);
                 tile.SetParent(handAnchor);
                 tile.SetLocalPosition(Vector3.zero);
                 
                 if (tileAnimator != null)
                 {
-                    tileAnimator.AnimateDraw(tile, tile.GameObject.transform.localPosition);
+                    await tileAnimator.AnimateDrawAsync(tile, tile.GameObject.transform.localPosition, cancellationToken);
                 }
                 
                 activeTiles.Add(tile);
                 return tile;
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"Failed to draw tile: {e.Message}");
                 return null;
             }
         }
 
-        /// <summary>
-        /// Discard a tile to the discard area
-        /// </summary>
-        public bool DiscardTile(MahjongTile tile, Transform discardAnchor)
+        public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor, CancellationToken cancellationToken = default)
         {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled. Cannot discard tile.");
+                return false;
+            }
+
             if (tile?.GameObject == null || !activeTiles.Contains(tile))
             {
                 Debug.LogWarning("Invalid tile to discard!");
@@ -299,47 +353,202 @@ namespace MahjongGame
             try
             {
                 tile.SetParent(discardAnchor);
-                Vector3 discardPos = Vector3.zero; // Calculate appropriate discard position
+                Vector3 discardPos = Vector3.zero;
                 
                 if (tileAnimator != null)
                 {
-                    tileAnimator.AnimateDiscard(tile, discardPos);
+                    await tileAnimator.AnimateDiscardAsync(tile, discardPos, cancellationToken);
                 }
                 
                 activeTiles.Remove(tile);
                 return true;
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"Failed to discard tile: {e.Message}");
                 return false;
             }
         }
 
-        /// <summary>
-        /// Play the rack animation
-        /// </summary>
-        public void PlayRackAnimation()
+        public async UniTask PlayRackAnimationAsync(CancellationToken cancellationToken = default)
         {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled. Cannot play rack animation.");
+                return;
+            }
+
             try
             {
                 if (tableAnimator != null)
                 {
                     tableAnimator.SetFloat("Blend", 1f);
+                    await UniTask.WaitUntil(() => !tableAnimator.IsInTransition(0), cancellationToken: cancellationToken);
                 }
                 else
                 {
                     Debug.LogWarning("Table Animator not found!");
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"Animation playback failed: {e.Message}");
             }
         }
 
+        public async UniTask<bool> DealHandCardsByDiceAsync(int dice1, int dice2, CancellationToken cancellationToken)
+        {
+            if (!enabled || mahjongTable == null)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled or MahjongTable is null.");
+                return false;
+            }
+
+            try
+            {
+                int startIndex = (dice1 + dice2 - 1) % 4;
+                Transform[] anchorTransforms = InitializeHandAnchors();
+                List<GameObject> allTiles = GetActiveTiles();
+
+                if (allTiles == null || allTiles.Count < 54)
+                {
+                    Debug.LogError($"Not enough tiles to deal hand cards. Available: {allTiles?.Count ?? 0}");
+                    return false;
+                }
+
+                int[] playerCardCounts = new int[4];
+                int[] handTotals = InitializeHandTotals(startIndex);
+
+                for (int round = 0; round < 3; round++)
+                {
+                    for (int p = 0; p < 4; p++)
+                    {
+                        int player = (startIndex + p) % 4;
+                        await DealHandCardsAsync(player, 4, handTotals[player], anchorTransforms, allTiles, playerCardCounts, cancellationToken);
+                    }
+                }
+
+                for (int p = 0; p < 4; p++)
+                {
+                    int player = (startIndex + p) % 4;
+                    await DealHandCardsAsync(player, 1, handTotals[player], anchorTransforms, allTiles, playerCardCounts, cancellationToken);
+                }
+
+                await DealHandCardsAsync(startIndex, 1, handTotals[startIndex], anchorTransforms, allTiles, playerCardCounts, cancellationToken);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"DealHandCardsByDiceAsync failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private Transform[] InitializeHandAnchors()
+        {
+            Transform[] anchorTransforms = new Transform[4];
+            for (int i = 0; i < 4; i++)
+            {
+                Transform anchor = mahjongTable.transform.Find(anchorNames[i]);
+                if (anchor == null)
+                {
+                    Debug.LogWarning($"Anchor {anchorNames[i]} not found.");
+                    continue;
+                }
+
+                Transform handOffset = anchor.Find($"HandOffset_{i}") ?? CreateHandOffset(anchor, i);
+                anchorTransforms[i] = handOffset;
+            }
+            return anchorTransforms;
+        }
+
+        private Transform CreateHandOffset(Transform anchor, int i)
+        {
+            Transform rackOffset = anchor.childCount > 0 && anchor.GetChild(0).name == $"RackOffset_{i}" ? anchor.GetChild(0) : anchor;
+            Vector3 offsetDirWorld = GetHandOffsetDirection(i);
+            Vector3 offsetDirLocal = anchor.InverseTransformDirection(offsetDirWorld);
+            Transform newHand = new GameObject($"HandOffset_{i}").transform;
+            newHand.SetParent(anchor, false);
+
+            Vector3 basePos = rackOffset.localPosition + offsetDirLocal;
+            basePos.y = MahjongConfig.HandOffsetY;
+            newHand.localPosition = basePos;
+
+            Quaternion rot = GetHandRotation(i);
+            newHand.localRotation = rot;
+
+            return newHand;
+        }
+
+        private Vector3 GetHandOffsetDirection(int i)
+        {
+            return i switch
+            {
+                0 => new Vector3(0, 0, MahjongConfig.HandOffsetDistance),
+                1 => new Vector3(MahjongConfig.HandOffsetDistance, 0, 0),
+                2 => new Vector3(0, 0, -MahjongConfig.HandOffsetDistance / 2f),
+                3 => new Vector3(-MahjongConfig.HandOffsetDistance, 0, 0),
+                _ => Vector3.zero
+            };
+        }
+
+        private Quaternion GetHandRotation(int i)
+        {
+            return i switch
+            {
+                1 => Quaternion.Euler(0, 90, 0),
+                2 => Quaternion.Euler(0, 180, 0),
+                3 => Quaternion.Euler(0, -90, 0),
+                _ => Quaternion.identity
+            };
+        }
+
+        private int[] InitializeHandTotals(int startIndex)
+        {
+            int[] handTotals = new int[4];
+            for (int i = 0; i < 4; i++)
+            {
+                handTotals[i] = MahjongConfig.InitialHandCount;
+            }
+            handTotals[startIndex] = MahjongConfig.EastExtraCard;
+            return handTotals;
+        }
+
+        private async UniTask DealHandCardsAsync(int player, int count, int totalCards, Transform[] anchorTransforms, List<GameObject> allTiles, int[] playerCardCounts, CancellationToken cancellationToken)
+        {
+            if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
+            {
+                return;
+            }
+
+            Transform anchor = anchorTransforms[player];
+            float rowWidth = totalCards * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) - MahjongConfig.TileSpacing;
+            float start = -rowWidth / 2f;
+
+            for (int j = 0; j < count && allTiles.Count > 0; j++)
+            {
+                GameObject tile = allTiles[0];
+                allTiles.RemoveAt(0);
+                tile.transform.SetParent(anchor);
+
+                float pos = start + (totalCards - 1 - playerCardCounts[player]) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
+                tile.transform.position = anchor.position + anchor.right * pos;
+                tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
+
+                playerCardCounts[player]++;
+                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.DealAnimationDelay), cancellationToken: cancellationToken);
+            }
+        }
+
         private void ClearTiles()
         {
+            if (tilePool == null)
+            {
+                Debug.LogError("TilePool is not initialized. Cannot clear tiles.");
+                return;
+            }
+
             foreach (var tile in activeTiles)
             {
                 if (tile?.GameObject != null)
@@ -351,20 +560,36 @@ namespace MahjongGame
             tileDeck.Clear();
         }
 
-        /// <summary>
-        /// Get all active tiles (for dealing hand cards)
-        /// </summary>
         public List<GameObject> GetActiveTiles()
         {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled. Cannot get active tiles.");
+                return new List<GameObject>();
+            }
+
             return activeTiles.Where(t => t?.GameObject != null).Select(t => t.GameObject).ToList();
         }
 
-        /// <summary>
-        /// Get tiles as MahjongTile objects
-        /// </summary>
         public List<MahjongTile> GetActiveMahjongTiles()
         {
+            if (!enabled)
+            {
+                Debug.LogError("EnhancedMahjongManager is disabled. Cannot get active Mahjong tiles.");
+                return new List<MahjongTile>();
+            }
+
             return new List<MahjongTile>(activeTiles);
+        }
+
+        private void ShuffleTiles(List<MahjongTile> tiles)
+        {
+            var random = new System.Random();
+            for (int i = tiles.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                (tiles[i], tiles[j]) = (tiles[j], tiles[i]);
+            }
         }
     }
 }

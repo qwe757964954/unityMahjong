@@ -173,7 +173,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a745b1e27bda50144aea26e5fb8ce563, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  MeshFilter: {fileID: 6847232921254148275}
+  meshFilter: {fileID: 6847232921254148275}
 --- !u!33 &6847232921254148275 stripped
 MeshFilter:
   m_CorrespondingSourceObject: {fileID: 1590175284269372735, guid: ef4099d007067f8429e2f645cafc7c60,

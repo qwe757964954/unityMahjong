@@ -2,6 +2,8 @@
 // ========== Game Controller (MVC Pattern) ==========
 using UnityEngine;
 using System.Collections;
+using Cysharp.Threading.Tasks; // For UniTask
+using System.Threading;
 
 namespace MahjongGame
 {
@@ -35,38 +37,68 @@ namespace MahjongGame
                 audioSource = GetComponent<AudioSource>();
         }
 
-        public void StartGame(int startIndex = 0)
+        /// <summary>
+        /// Starts the game with the specified start index.
+        /// </summary>
+        public async UniTask StartGameAsync(int startIndex = 0, CancellationToken cancellationToken = default)
         {
-            StartCoroutine(StartGameRoutine(startIndex));
-        }
-
-        private IEnumerator StartGameRoutine(int startIndex)
-        {
-            PlaySound(shuffleSound);
-            yield return StartCoroutine(mahjongManager.InitializeGameRoutine());
-            
-            if (handCanvas != null)
+            try
             {
-                handCanvas.UpdateUI();
+                PlaySound(shuffleSound);
+                bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
+                if (success)
+                {
+                    Debug.Log("Game started successfully!");
+                    // Optionally trigger additional initialization, e.g., handCanvas setup
+                }
+                else
+                {
+                    Debug.LogError("Failed to initialize game.");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"StartGameAsync failed: {ex.Message}");
             }
         }
 
-        public void DrawTile(Transform handAnchor)
+        /// <summary>
+        /// Draws a tile and plays the draw sound.
+        /// </summary>
+        public async UniTask DrawTileAsync(Transform handAnchor, CancellationToken cancellationToken = default)
         {
-            var tile = mahjongManager.DrawTile(handAnchor);
-            if (tile != null)
+            try
             {
-                PlaySound(drawSound);
-                Debug.Log($"Drew tile: {tile.Suit} {tile.Number}");
+                MahjongTile tile = await mahjongManager.DrawTileAsync(handAnchor, cancellationToken);
+                if (tile != null)
+                {
+                    PlaySound(drawSound);
+                    Debug.Log($"Drew tile: {tile.Suit} {tile.Number}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Failed to draw tile: {ex.Message}");
             }
         }
 
-        public void DiscardTile(MahjongTile tile, Transform discardAnchor)
+        /// <summary>
+        /// Discards a tile and plays the discard sound.
+        /// </summary>
+        public async UniTask DiscardTileAsync(MahjongTile tile, Transform discardAnchor, CancellationToken cancellationToken = default)
         {
-            if (mahjongManager.DiscardTile(tile, discardAnchor))
+            try
             {
-                PlaySound(discardSound);
-                Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
+                bool success = await mahjongManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
+                if (success)
+                {
+                    PlaySound(discardSound);
+                    Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Failed to discard tile: {ex.Message}");
             }
         }
 

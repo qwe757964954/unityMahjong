@@ -1,22 +1,34 @@
+// Visual representation of a Mahjong tile
 using UnityEngine;
 using DG.Tweening;
-using MahjongGame;
-
 namespace MahjongGame
 {
     public class MahjongDisplay : MonoBehaviour
     {
         public MahjongType Type { get; private set; }
-        public MeshFilter MeshFilter;
-        private Mesh[] Meshes;
+        [SerializeField] private MeshFilter meshFilter;
+        private static Mesh[] meshes; // Static cache for meshes
 
         private void Awake()
         {
+            if (meshFilter == null)
+            {
+                meshFilter = GetComponent<MeshFilter>();
+                if (meshFilter == null)
+                {
+                    Debug.LogError($"MeshFilter not found on {gameObject.name}. Disabling component.");
+                    enabled = false;
+                    return;
+                }
+            }
+
             LoadMeshes();
         }
 
-        private void LoadMeshes()
+        private static void LoadMeshes()
         {
+            if (meshes != null) return; // Already loaded
+
             Mesh[] allMeshes = Resources.LoadAll<Mesh>("Meshes");
             if (allMeshes == null || allMeshes.Length == 0)
             {
@@ -25,7 +37,7 @@ namespace MahjongGame
             }
 
             var mahjongTypes = System.Enum.GetValues(typeof(MahjongType));
-            Meshes = new Mesh[mahjongTypes.Length];
+            meshes = new Mesh[mahjongTypes.Length];
 
             foreach (Mesh mesh in allMeshes)
             {
@@ -38,18 +50,19 @@ namespace MahjongGame
                         string expectedPinyin = MahjongTileData.GetPinyinForMahjongType(type);
                         if (pinyinName == expectedPinyin)
                         {
-                            Meshes[(int)type] = mesh;
+                            meshes[(int)type] = mesh;
                             break;
                         }
                     }
                 }
             }
 
-            for (int i = 0; i < Meshes.Length; i++)
+            for (int i = 0; i < meshes.Length; i++)
             {
-                if (Meshes[i] == null)
+                if (meshes[i] == null)
                 {
-                    Debug.LogWarning($"Mesh not found for MahjongType: {(MahjongType)i}, expected pinyin: {MahjongTileData.GetPinyinForMahjongType((MahjongType)i)}");
+                    Debug.LogWarning(
+                        $"Mesh not found for MahjongType: {(MahjongType)i}, expected pinyin: {MahjongTileData.GetPinyinForMahjongType((MahjongType)i)}");
                 }
             }
         }
@@ -62,19 +75,19 @@ namespace MahjongGame
 
         private void UpdateMesh()
         {
-            if (Meshes != null && MeshFilter != null && (int)Type < Meshes.Length && Meshes[(int)Type] != null)
+            if (meshes != null && meshFilter != null && (int)Type < meshes.Length && meshes[(int)Type] != null)
             {
-                MeshFilter.mesh = Meshes[(int)Type];
+                meshFilter.mesh = meshes[(int)Type];
             }
             else
             {
-                Debug.LogWarning($"Mesh not loaded for Type: {Type}");
+                Debug.LogWarning($"Mesh not loaded for Type: {Type} on {gameObject.name}");
             }
         }
 
         public void PlayDrawAnimation(Vector3 targetPosition)
         {
-            transform.DOMove(targetPosition, 0.5f).SetEase(Ease.OutQuad);
+            transform.DOMove(targetPosition, MahjongConfig.AnimationDuration).SetEase(Ease.OutQuad);
         }
     }
 }

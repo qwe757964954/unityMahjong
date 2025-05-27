@@ -1,22 +1,22 @@
-﻿// ========== Enhanced MahjongTile Class ==========
-using UnityEngine;
+﻿using UnityEngine;
+using DG.Tweening;
 
 namespace MahjongGame
 {
+    // Data model for a Mahjong tile
     public class MahjongTile
     {
-        public MahjongType Type { get; private set; }
+        public MahjongType Type { get; set; }
         public string Suit { get; private set; }
         public int Number { get; private set; }
-        public GameObject GameObject { get; set; }
+        public GameObject GameObject { get; private set; }
         public MahjongDisplay Display { get; private set; }
 
-        public MahjongTile(MahjongType type, GameObject gameObject)
+        public MahjongTile(MahjongType type, GameObject gameObject = null)
         {
             Type = type;
-            GameObject = gameObject;
-            Display = gameObject.GetComponent<MahjongDisplay>();
-            
+            SetGameObject(gameObject);
+
             // Parse suit and number
             if (type >= MahjongType.Dot1 && type <= MahjongType.Dot9)
             {
@@ -38,11 +38,15 @@ namespace MahjongGame
                 Suit = "Honor";
                 Number = 0;
             }
-            
-            // Set the display type
+        }
+
+        public void SetGameObject(GameObject gameObject)
+        {
+            GameObject = gameObject;
+            Display = gameObject != null ? gameObject.GetComponent<MahjongDisplay>() : null;
             if (Display != null)
             {
-                Display.SetType(type);
+                Display.SetType(Type);
             }
         }
 
@@ -82,7 +86,7 @@ namespace MahjongGame
         {
             if (GameObject != null)
             {
-                GameObject.transform.SetParent(parent);
+                GameObject.transform.SetParent(parent, false);
             }
         }
     }

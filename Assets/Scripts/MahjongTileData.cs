@@ -21,35 +21,6 @@ namespace MahjongGame
     // 麻将牌数据
     public class MahjongTileData
     {
-        public MahjongType Type { get; private set; }
-        public string Suit { get; private set; }
-        public int Number { get; private set; }
-
-        public MahjongTileData(MahjongType type)
-        {
-            Type = type;
-            if (type >= MahjongType.Dot1 && type <= MahjongType.Dot9)
-            {
-                Suit = "Dot";
-                Number = (int)type - (int)MahjongType.Dot1 + 1;
-            }
-            else if (type >= MahjongType.Bamboo1 && type <= MahjongType.Bamboo9)
-            {
-                Suit = "Bamboo";
-                Number = (int)type - (int)MahjongType.Bamboo1 + 1;
-            }
-            else if (type >= MahjongType.Character1 && type <= MahjongType.Character9)
-            {
-                Suit = "Character";
-                Number = (int)type - (int)MahjongType.Character1 + 1;
-            }
-            else
-            {
-                Suit = "Honor";
-                Number = 0;
-            }
-        }
-
         // 拼音映射方法
         public static string GetPinyinForMahjongType(MahjongType type)
         {
