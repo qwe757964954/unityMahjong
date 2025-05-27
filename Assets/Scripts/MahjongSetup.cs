@@ -50,7 +50,7 @@ public class MahjongSetup : MonoBehaviour
             mahjongManager.MahjongPrefab = mahjongPrefab;
         }
 
-        mahjongManager.InitializeMahjongTiles();
+        // mahjongManager.InitializeMahjongTiles();
     }
 
     public void ResetMahjong()

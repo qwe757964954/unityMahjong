@@ -30,7 +30,6 @@ namespace MahjongGame
         private const float TILE_WIDTH = 0.035f;
         private const float TILE_SPACING = 0.002f;
         private const float WAIT_DURATION = 0.1f;
-
         private void Awake()
         {
             mahjongManager = FindObjectOfType<MahjongManager>();
@@ -68,18 +67,21 @@ namespace MahjongGame
 
         private IEnumerator ShuffleAndSetDice()
         {
+            (int n1, int n2) = ParseDiceInput();
+            int startIndex = (n1 + n2 - 1) % 4;
             if (mahjongManager == null) yield break;
+            mahjongManager.InitializeMahjongTiles(startIndex);
+            yield return new WaitForSeconds(0.5f);
             mahjongManager.PlayRackAnimation();
             yield return new WaitForSeconds(0.5f);
 
-            // Dice logic can be reintroduced later if needed
-            (int n1, int n2) = ParseDiceInput();
+            
             // if (diceController != null)
             // {
             //     diceController.SetDiceNumbers(n1, n2);
             // }
 
-            mahjongManager.InitializeMahjongTiles();
+            
         }
 
         private IEnumerator SendHandCardsByDice()
@@ -176,7 +178,7 @@ namespace MahjongGame
             {
                 0 => new Vector3(0, 0, 0.08f),   // 东位向北
                 1 => new Vector3(0.08f, 0, 0),   // 南位向东
-                2 => new Vector3(0, 0, -0.08f),  // 西位向南
+                2 => new Vector3(0, 0, -0.04f),  // 西位向南
                 3 => new Vector3(-0.08f, 0, 0),  // 北位向西
                 _ => Vector3.zero
             };

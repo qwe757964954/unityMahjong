@@ -48,12 +48,12 @@ namespace MahjongGame
             }
         }
 
-        public void InitializeMahjongTiles()
+        public void InitializeMahjongTiles(int startIndex = 0)
         {
-            StartCoroutine(GameLoop());
+            StartCoroutine(GameLoop(startIndex));
         }
 
-        public IEnumerator GameLoop()
+        public IEnumerator GameLoop(int startIndex)
         {
             while (true)
             {
@@ -68,7 +68,7 @@ namespace MahjongGame
                         currentState = GameState.Dealing;
                         break;
                     case GameState.Dealing:
-                        yield return StartCoroutine(DealTilesRoutine());
+                        yield return StartCoroutine(DealTilesRoutine(startIndex));
                         currentState = GameState.Playing;
                         break;
                     case GameState.Playing:
@@ -123,7 +123,7 @@ namespace MahjongGame
             Debug.Log("Tiles shuffled! Remaining tiles in deck: " + tileDeck.Count);
         }
 
-        private void CreateTilesOnRacks(List<MahjongType> tiles)
+        private void CreateTilesOnRacks(List<MahjongType> tiles, int startIndex)
         {
             Transform tableTransform = MahjongTable?.transform;
             if (tableTransform == null)
@@ -148,7 +148,12 @@ namespace MahjongGame
                 racks[i] = offset.gameObject;
             }
 
-            int[] rackOrder = { 0, 1, 2, 3 };
+            // 顺时针顺序：东(0)->南(1)->西(2)->北(3)
+            int[] rackOrder = new int[4];
+            for (int i = 0; i < 4; i++)
+            {
+                rackOrder[i] = (startIndex + i) % 4;
+            }
             int[] rackTileCount = new int[4];
             int tilesPerPlayer = tiles.Count / 4;
             float tileWidth = 0.035f, tileSpacing = 0.002f, stackHeight = 0.021f;
@@ -195,13 +200,13 @@ namespace MahjongGame
             lastRacks = racks;
         }
 
-        private IEnumerator DealTilesRoutine()
+        private IEnumerator DealTilesRoutine(int startIndex)
         {
             if (activeTiles.Count == 0)
             {
                 List<MahjongType> allTiles = GenerateAllTiles();
                 ShuffleTiles(allTiles);
-                CreateTilesOnRacks(allTiles);
+                CreateTilesOnRacks(allTiles, startIndex);
                 tileDeck = new List<MahjongType>(allTiles);
                 tileDeck.RemoveRange(0, 4 * TilesPerRack);
             }
