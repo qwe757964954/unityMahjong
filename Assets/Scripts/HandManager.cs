@@ -14,7 +14,11 @@ namespace MahjongGame
         private EnhancedObjectPool tilePool;
         private DeckManager deckManager;
         private List<MahjongTile> activeTiles;
-        private readonly string[] anchorNames = { "Anchor_Down", "Anchor_Left", "Anchor_Up", "Anchor_Right" };
+        [Header("HandSelfPlaying")]
+        [SerializeField] private Transform HandSelfPlaying;
+        [Header("Anchor Transforms (Down, Left, Up, Right)")]
+        [SerializeField] private Transform[] anchorTransforms = new Transform[4];
+        
 
         public void Initialize(GameObject table, EnhancedObjectPool pool, TileAnimator animator, DeckManager deck,
             List<MahjongTile> tiles)
@@ -35,12 +39,6 @@ namespace MahjongGame
         public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, bool isReveal = true,
             CancellationToken cancellationToken = default)
         {
-            if (!enabled)
-            {
-                Debug.LogError("HandManager is disabled. Cannot draw tile.");
-                return null;
-            }
-
             Transform handAnchor = GetHandAnchor(playerIndex, isReveal);
             if (handAnchor == null)
             {
@@ -153,12 +151,6 @@ namespace MahjongGame
 
         public async UniTask<bool> DealHandCardsByDiceAsync(int dice1, int dice2, CancellationToken cancellationToken)
         {
-            if (!enabled || mahjongTable == null)
-            {
-                Debug.LogError("HandManager is disabled or MahjongTable is null.");
-                return false;
-            }
-
             try
             {
                 int startIndex = (dice1 + dice2 - 1) % 4;
@@ -205,12 +197,6 @@ namespace MahjongGame
 
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
-            if (!enabled || mahjongTable == null)
-            {
-                Debug.LogError("HandManager is disabled or MahjongTable is null.");
-                return false;
-            }
-
             try
             {
                 Transform[] revealAnchors = InitializeHandAnchors(true);
@@ -249,97 +235,43 @@ namespace MahjongGame
 
         private Transform GetHandAnchor(int playerIndex, bool isReveal)
         {
-            if (mahjongTable == null)
+            // ✅ 特殊情况：玩家 0 且是明牌阶段，使用 HandSelfPlaying
+            if (playerIndex == 0 && isReveal)
             {
-                Debug.LogError("MahjongTable is not assigned.");
+                return HandSelfPlaying;
+            }
+            // 通用处理：使用 anchorTransforms
+            if (playerIndex < 0 || playerIndex >= anchorTransforms.Length)
+            {
+                Debug.LogError($"Invalid playerIndex: {playerIndex}");
                 return null;
             }
 
-            string anchorName = anchorNames[playerIndex];
-            Transform anchor = mahjongTable.transform.Find(anchorName);
-            if (anchor == null)
-            {
-                Debug.LogError($"Anchor {anchorName} not found on MahjongTable.");
-                return null;
-            }
-
-            Transform handOffset = anchor.Find($"HandOffset_{playerIndex}");
-            if (handOffset == null)
-            {
-                handOffset = CreateHandOffset(anchor, playerIndex, isReveal);
-            }
-
-            return handOffset;
+            Transform anchor = anchorTransforms[playerIndex];
+            return anchor;
         }
-
-        private Transform CreateHandOffset(Transform anchor, int playerIndex, bool isReveal)
-        {
-            Transform rackOffset = anchor.childCount > 0 && anchor.GetChild(0).name == $"RackOffset_{playerIndex}"
-                ? anchor.GetChild(0)
-                : anchor;
-            Vector3 offsetDirWorld = GetHandOffsetDirection(playerIndex, isReveal);
-            Vector3 offsetDirLocal = anchor.InverseTransformDirection(offsetDirWorld);
-            Transform newHand = new GameObject($"HandOffset_{playerIndex}").transform;
-            newHand.SetParent(anchor, false);
-
-            Vector3 basePos = rackOffset.localPosition + offsetDirLocal;
-            basePos.y = isReveal && playerIndex == 0 ? basePos.y : MahjongConfig.HandOffsetY;
-            newHand.localPosition = basePos;
-
-            Quaternion rot = isReveal && playerIndex == 0
-                ? Quaternion.Euler(MahjongConfig.RevealHandRotationX, 0, 0)
-                : GetHandRotation(playerIndex);
-            newHand.localRotation = rot;
-
-            return newHand;
-        }
-
-        private Vector3 GetHandOffsetDirection(int playerIndex, bool isReveal)
-        {
-            if (isReveal && playerIndex == 0)
-            {
-                return MahjongConfig.RevealHandPositionDown;
-            }
-
-            return playerIndex switch
-            {
-                0 => new Vector3(0, 0, MahjongConfig.HandOffsetDistance),
-                1 => new Vector3(MahjongConfig.HandOffsetDistance, 0, 0),
-                2 => new Vector3(0, 0, -MahjongConfig.HandOffsetDistance),
-                3 => new Vector3(-MahjongConfig.HandOffsetDistance, 0, 0),
-                _ => Vector3.zero
-            };
-        }
-
-        private Quaternion GetHandRotation(int playerIndex)
-        {
-            return playerIndex switch
-            {
-                1 => Quaternion.Euler(0, 90, 0),
-                2 => Quaternion.Euler(0, 180, 0),
-                3 => Quaternion.Euler(0, -90, 0),
-                _ => Quaternion.identity
-            };
-        }
+        
 
         private Transform[] InitializeHandAnchors(bool isReveal)
         {
-            Transform[] anchorTransforms = new Transform[4];
+            Transform[] anchors = new Transform[4];
+
             for (int i = 0; i < 4; i++)
             {
-                Transform anchor = mahjongTable.transform.Find(anchorNames[i]);
-                if (anchor == null)
+                if (i == 0 && isReveal)
                 {
-                    Debug.LogWarning($"Anchor {anchorNames[i]} not found.");
-                    continue;
+                    anchors[0] = HandSelfPlaying;
                 }
-
-                Transform handOffset = anchor.Find($"HandOffset_{i}") ?? CreateHandOffset(anchor, i, isReveal);
-                anchorTransforms[i] = handOffset;
+                else
+                {
+                    anchors[i] = anchorTransforms[i];
+                }
+                
             }
 
-            return anchorTransforms;
+            return anchors;
         }
+
 
         private int[] InitializeHandTotals(int startIndex)
         {
@@ -400,12 +332,6 @@ namespace MahjongGame
 
         public List<GameObject> GetActiveTiles()
         {
-            if (!enabled)
-            {
-                Debug.LogError("HandManager is disabled. Cannot get active tiles.");
-                return new List<GameObject>();
-            }
-
             return activeTiles.Where(t => t?.GameObject != null).Select(t => t.GameObject).ToList();
         }
     }

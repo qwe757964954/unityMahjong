@@ -22,9 +22,9 @@ namespace MahjongGame
         [SerializeField]
         private TileAnimator tileAnimator;
 
-        [SerializeField] private DeckManager deckManager;
-        [SerializeField] private RackManager rackManager;
-        [SerializeField] private HandManager handManager;
+        private DeckManager deckManager;
+        private RackManager rackManager;
+        private HandManager handManager;
 
         public GameObject MahjongTable
         {
@@ -44,14 +44,6 @@ namespace MahjongGame
 
         private void InitializeComponents()
         {
-            if (mahjongPrefab == null || mahjongTable == null || gameRule == null)
-            {
-                Debug.LogError(
-                    "Missing required components (MahjongPrefab, MahjongTable, or GameRule). Disabling EnhancedMahjongManager.");
-                enabled = false;
-                return;
-            }
-
             try
             {
                 tilePool = new EnhancedObjectPool(mahjongPrefab, mahjongTable.transform, MahjongConfig.DefaultPoolSize);
@@ -80,12 +72,6 @@ namespace MahjongGame
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
         {
-            if (!enabled)
-            {
-                Debug.LogError("EnhancedMahjongManager is disabled.");
-                return false;
-            }
-
             try
             {
                 bool success = await InitializeGameSafeAsync(cancellationToken);
@@ -122,12 +108,6 @@ namespace MahjongGame
 
         private async UniTask ShuffleTilesAsync(CancellationToken cancellationToken)
         {
-            if (deckManager == null || tilePool == null)
-            {
-                Debug.LogError("DeckManager or TilePool is null.");
-                return;
-            }
-
             ClearTiles();
             bool success = await deckManager.ShuffleTilesAsync(cancellationToken);
             if (!success)
@@ -138,49 +118,25 @@ namespace MahjongGame
 
         private async UniTask DealTilesAsync(CancellationToken cancellationToken)
         {
-            if (deckManager?.TileCount == 0 || rackManager == null)
-            {
-                Debug.LogError("Invalid DeckManager or RackManager state.");
-                return;
-            }
-
             CreateTilesOnRacks();
             await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.AnimationDuration),
                 cancellationToken: cancellationToken);
-            Debug.Log("Tiles dealt to racks!");
         }
 
         private void CreateTilesOnRacks()
         {
-            if (gameRule == null || rackManager == null || deckManager == null)
-            {
-                Debug.LogError("GameRule, RackManager, or DeckManager is null.");
-                return;
-            }
-            
             int tilesPerRack = gameRule.TilesPerPlayer;
 
             GameObject[] racks = rackManager.CreateRackOffsets();
             int tileIndex = 0;
             for (int rackIndex = 0; rackIndex < 4; rackIndex++)
             {
-                if (racks[rackIndex] == null)
-                {
-                    Debug.LogError($"Rack {rackIndex} is null, skipping.");
-                    continue;
-                }
                 for (int i = 0; i < tilesPerRack; i++)
                 {
                     MahjongTile tile = deckManager.DrawTile();
-                    if (tile == null)
-                    {
-                        Debug.LogWarning($"DrawTile returned null at tileIndex {tileIndex} for Rack {rackIndex}");
-                        break;
-                    }
                     if (rackManager.CreateTileOnRack(racks[rackIndex], rackIndex, i, tile, tilePool))
                     {
                         activeTiles.Add(tile);
-                        Debug.Log($"Added tile {tileIndex} to Rack {rackIndex}");
                     }
                     else
                     {
@@ -188,64 +144,33 @@ namespace MahjongGame
                     }
                     tileIndex++;
                 }
-                Debug.Log($"Finished Rack {rackIndex}, tileIndex = {tileIndex}");
             }
         }
 
         public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, bool isReveal = true,
             CancellationToken cancellationToken = default)
         {
-            if (!enabled || handManager == null)
-            {
-                Debug.LogError("EnhancedMahjongManager or HandManager is disabled/null.");
-                return null;
-            }
-
-            return await handManager.DrawTileAsync(playerIndex, isReveal, cancellationToken);
+            return await handManager.DrawTileAsync(playerIndex,isReveal, cancellationToken);
         }
 
         public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor,
             CancellationToken cancellationToken = default)
         {
-            if (!enabled || handManager == null)
-            {
-                Debug.LogError("EnhancedMahjongManager or HandManager is disabled/null.");
-                return false;
-            }
-
             return await handManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
         }
 
         public async UniTask<bool> DealHandCardsByDiceAsync(int dice1, int dice2, CancellationToken cancellationToken)
         {
-            if (!enabled || handManager == null)
-            {
-                Debug.LogError("EnhancedMahjongManager or HandManager is disabled/null.");
-                return false;
-            }
-
             return await handManager.DealHandCardsByDiceAsync(dice1, dice2, cancellationToken);
         }
 
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
-            if (!enabled || handManager == null)
-            {
-                Debug.LogError("EnhancedMahjongManager or HandManager is disabled/null.");
-                return false;
-            }
-
             return await handManager.RevealHandCardsAsync(cancellationToken);
         }
 
         public async UniTask PlayRackAnimationAsync(CancellationToken cancellationToken = default)
         {
-            if (!enabled)
-            {
-                Debug.LogError("EnhancedMahjongManager is disabled.");
-                return;
-            }
-
             try
             {
                 if (tableAnimator != null)
@@ -267,12 +192,6 @@ namespace MahjongGame
 
         private void ClearTiles()
         {
-            if (tilePool == null || deckManager == null)
-            {
-                Debug.LogError("TilePool or DeckManager is null.");
-                return;
-            }
-
             foreach (var tile in activeTiles)
             {
                 if (tile?.GameObject != null)
@@ -287,23 +206,11 @@ namespace MahjongGame
 
         public List<GameObject> GetActiveTiles()
         {
-            if (!enabled || handManager == null)
-            {
-                Debug.LogError("EnhancedMahjongManager or HandManager is disabled/null.");
-                return new List<GameObject>();
-            }
-
             return handManager.GetActiveTiles();
         }
 
         public List<MahjongTile> GetActiveMahjongTiles()
         {
-            if (!enabled)
-            {
-                Debug.LogError("EnhancedMahjongManager is disabled.");
-                return new List<MahjongTile>();
-            }
-
             return new List<MahjongTile>(activeTiles);
         }
     }
