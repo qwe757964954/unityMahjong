@@ -8,22 +8,22 @@ namespace MahjongGame
 {
     public class HandOperationCanvas : MonoBehaviour
     {
-        [Header("UI Elements")]
-        [SerializeField] private Button shuffleButton;
+        [Header("UI Elements")] [SerializeField]
+        private Button shuffleButton;
+
         [SerializeField] private Button sendHandCardButton;
         [SerializeField] private Button drawButton;
         [SerializeField] private Button discardButton;
         [SerializeField] private Button revealHandButton;
         [SerializeField] private Transform discardAnchor;
-        [SerializeField] private GameObject riceNumberInput;
+        [SerializeField] private InputField riceInputField;
         [SerializeField] private GameObject playerIndexInput; // New field for player index input
 
         private EnhancedMahjongManager mahjongManager;
-        private InputField riceInputField;
         private InputField playerIndexInputField;
         private GameObject selectedTile;
-        private int currentPlayerIndex = 0; // Track current player
-        private void Awake()
+
+        private void Start()
         {
             InitializeReferences();
             SetupButtonListeners();
@@ -32,77 +32,60 @@ namespace MahjongGame
         private void InitializeReferences()
         {
             mahjongManager = FindObjectOfType<EnhancedMahjongManager>();
-            riceInputField = riceNumberInput?.GetComponent<InputField>();
             playerIndexInputField = playerIndexInput?.GetComponent<InputField>(); // Initialize player index InputField
+            Debug.Log($"InitializeReferences GameDataManager {GameDataManager.Instance } riceInputField{riceInputField }");
+            GameDataManager.Instance.SetDiceValuesFromInput(riceInputField.text);
         }
 
         private void SetupButtonListeners()
         {
             if (enabled)
             {
-                shuffleButton.onClick.AddListener(() => ShuffleAndSetDiceAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                sendHandCardButton.onClick.AddListener(() => DealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                shuffleButton.onClick.AddListener(() =>
+                    ShuffleAndSetDiceAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                sendHandCardButton.onClick.AddListener(() =>
+                    DealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 drawButton.onClick.AddListener(() => DrawTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                discardButton.onClick.AddListener(() => DiscardTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                revealHandButton.onClick.AddListener(() => RevealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                discardButton.onClick.AddListener(() =>
+                    DiscardTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                revealHandButton.onClick.AddListener(() =>
+                    RevealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
             }
         }
 
         private async UniTask ShuffleAndSetDiceAsync(CancellationToken cancellationToken)
         {
-            try
+            bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
+            if (!success)
             {
-                (int n1, int n2) = ParseDiceInput();
-                bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
-                if (!success)
-                {
-                    Debug.LogError($"Failed to initialize game with dice {n1}, {n2}. Check MahjongTable anchors and MahjongConfig.");
-                    return;
-                }
-
-                // await UniTask.Delay(TimeSpan.FromSeconds(0.1f), cancellationToken: cancellationToken);
-                await mahjongManager.PlayRackAnimationAsync(cancellationToken);
-                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
-
-                Debug.Log($"Shuffled and set dice: {n1}, {n2}");
+                Debug.LogError(
+                    $"Failed to initialize game with dice. Check MahjongTable anchors and MahjongConfig.");
+                return;
             }
-            catch (Exception ex)
-            {
-                Debug.LogError($"ShuffleAndSetDiceAsync failed: {ex.Message}");
-            }
+            await mahjongManager.PlayRackAnimationAsync(cancellationToken);
+            await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
         }
 
         private async UniTask DealHandCardsAsync(CancellationToken cancellationToken)
         {
-
-            try
+            bool success = await mahjongManager.DealHandCardsByDiceAsync(cancellationToken);
+            if (success)
             {
-                (int dice1, int dice2) = ParseDiceInput();
-                bool success = await mahjongManager.DealHandCardsByDiceAsync(dice1, dice2, cancellationToken);
-                if (success)
-                {
-                    Debug.Log("Hand cards dealt!");
-                }
-                else
-                {
-                    Debug.LogError($"Failed to deal hand cards with dice {dice1}, {dice2}.");
-                }
+                Debug.Log("Hand cards dealt!");
             }
-            catch (Exception ex)
+            else
             {
-                Debug.LogError($"DealHandCardsAsync failed: {ex.Message}");
+                Debug.LogError($"Failed to deal hand cards with dice");
             }
         }
 
         private async UniTask DrawTileAsync(CancellationToken cancellationToken)
         {
-
             try
             {
                 // Parse player index from input
                 int playerIndex = ParsePlayerIndex();
-                bool isReveal = playerIndex == 0; // Reveal for Down player (index 0), conceal for others
-                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, isReveal, cancellationToken);
+                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, cancellationToken);
                 if (tile != null)
                 {
                     Debug.Log($"Drew tile for Player {playerIndex}: {tile.Suit} {tile.Number}");
@@ -113,6 +96,7 @@ namespace MahjongGame
                 Debug.LogError($"DrawTileAsync failed: {ex.Message}");
             }
         }
+
         private int ParsePlayerIndex()
         {
             if (playerIndexInputField == null || string.IsNullOrWhiteSpace(playerIndexInputField.text))
@@ -129,14 +113,17 @@ namespace MahjongGame
                 {
                     return playerIndex;
                 }
+
                 Debug.LogWarning($"Invalid player index: {playerIndex}. Must be 0–3. Defaulting to 0.");
             }
             else
             {
                 Debug.LogWarning($"Failed to parse player index: {input}. Defaulting to player 0.");
             }
+
             return 0;
         }
+
         private async UniTask DiscardTileAsync(CancellationToken cancellationToken)
         {
             if (mahjongManager == null)
@@ -198,26 +185,7 @@ namespace MahjongGame
                 Debug.LogError($"RevealHandCardsAsync failed: {ex.Message}");
             }
         }
-
-        private (int, int) ParseDiceInput()
-        {
-            if (riceInputField == null)
-            {
-                Debug.LogWarning("InputField is not initialized. Using default dice values.");
-                return (1, 1);
-            }
-
-            string input = riceInputField.text.Trim();
-            string[] nums = input.Split(new[] { ' ', ',', ';', '，' }, StringSplitOptions.RemoveEmptyEntries);
-            int n1 = 1, n2 = 1;
-            if (nums.Length >= 2)
-            {
-                int.TryParse(nums[0], out n1);
-                int.TryParse(nums[1], out n2);
-            }
-            return (n1, n2);
-        }
-
+        
         public void SelectTile(GameObject tile)
         {
             selectedTile = tile;

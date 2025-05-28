@@ -76,7 +76,7 @@ namespace MahjongGame
             try
             {
                 int playerIndex = 0; // Down player; adjust based on game logic
-                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, true, cancellationToken);
+                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, cancellationToken);
                 if (tile != null)
                 {
                     Debug.Log($"Drew tile: {tile.Suit} {tile.Number}");

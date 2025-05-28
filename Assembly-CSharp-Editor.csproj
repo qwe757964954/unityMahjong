@@ -802,11 +802,20 @@
     <Reference Include="Unity.Postprocessing.Runtime">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Postprocessing.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="UniTask.TextMeshPro">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.TextMeshPro.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Timeline.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Timeline.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VisualScripting.Shared.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.Shared.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="UniTask.DOTween">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.DOTween.dll</HintPath>
+    </Reference>
+    <Reference Include="UniTask.Addressables">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.Addressables.dll</HintPath>
     </Reference>
     <Reference Include="Unity.AdaptivePerformance">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.dll</HintPath>
@@ -840,6 +849,9 @@
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UniTask.Linq">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.Linq.dll</HintPath>
     </Reference>
     <Reference Include="Unity.AdaptivePerformance.UI.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.UI.Editor.dll</HintPath>
@@ -880,6 +892,9 @@
     <Reference Include="Unity.AdaptivePerformance.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Editor.dll</HintPath>
     </Reference>
+    <Reference Include="UniTask">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.VisualScripting.State">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.State.dll</HintPath>
     </Reference>
@@ -909,33 +924,13 @@
       <Project>{2258598a-0d16-490e-7126-713a28782037}</Project>
       <Name>Assembly-CSharp-Editor-firstpass</Name>
     </ProjectReference>
-    <ProjectReference Include="UniTask.Addressables.csproj">
-      <Project>{40be8ede-238e-1714-ed43-08ec56210c5d}</Project>
-      <Name>UniTask.Addressables</Name>
-    </ProjectReference>
-    <ProjectReference Include="UniTask.Linq.csproj">
-      <Project>{9a6777ee-8171-5849-a184-b124cc742178}</Project>
-      <Name>UniTask.Linq</Name>
-    </ProjectReference>
     <ProjectReference Include="Wx.csproj">
       <Project>{3aa61121-aa76-77e5-a1e9-914efbd25e05}</Project>
       <Name>Wx</Name>
     </ProjectReference>
-    <ProjectReference Include="UniTask.csproj">
-      <Project>{b5832ecb-4e4e-4c81-6aec-cfc74ef8a31b}</Project>
-      <Name>UniTask</Name>
-    </ProjectReference>
     <ProjectReference Include="WxEditor.csproj">
       <Project>{541f016e-9258-6e26-0915-c2ef4c5e0d29}</Project>
       <Name>WxEditor</Name>
-    </ProjectReference>
-    <ProjectReference Include="UniTask.TextMeshPro.csproj">
-      <Project>{354f3162-8cc1-da7f-3af7-905dfa7b1254}</Project>
-      <Name>UniTask.TextMeshPro</Name>
-    </ProjectReference>
-    <ProjectReference Include="UniTask.DOTween.csproj">
-      <Project>{b8ada559-5db8-5d7c-5c9d-1b7bafebde2e}</Project>
-      <Name>UniTask.DOTween</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

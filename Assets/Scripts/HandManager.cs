@@ -1,8 +1,10 @@
 ﻿using UnityEngine;
 using Cysharp.Threading.Tasks;
 using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
+using DG.Tweening;
 using System.Threading;
 
 namespace MahjongGame
@@ -11,87 +13,39 @@ namespace MahjongGame
     {
         [SerializeField] private GameObject mahjongTable;
         [SerializeField] private TileAnimator tileAnimator;
-        private EnhancedObjectPool tilePool;
-        private DeckManager deckManager;
-        private List<MahjongTile> activeTiles;
-        [Header("HandSelfPlaying")]
-        [SerializeField] private Transform HandSelfPlaying;
-        [Header("Anchor Transforms (Down, Left, Up, Right)")]
-        [SerializeField] private Transform[] anchorTransforms = new Transform[4];
-        
 
-        public void Initialize(GameObject table, EnhancedObjectPool pool, TileAnimator animator, DeckManager deck,
-            List<MahjongTile> tiles)
+        [Header("HandSelfPlaying")] [SerializeField]
+        private Transform HandSelfPlaying;
+
+        [Header("Anchor Transforms (Down, Left, Up, Right)")] [SerializeField]
+        private Transform[] anchorTransforms = new Transform[4];
+
+        private RackManager rackManager;
+
+        public void Initialize(GameObject table, TileAnimator animator, RackManager rack)
         {
             mahjongTable = table;
-            tilePool = pool;
             tileAnimator = animator;
-            deckManager = deck;
-            activeTiles = tiles ?? new List<MahjongTile>();
-
-            if (mahjongTable == null || tilePool == null || deckManager == null || activeTiles == null)
+            rackManager = rack;
+            if (mahjongTable == null || rackManager == null)
             {
                 Debug.LogError("Required dependencies not assigned in HandManager. Disabling component.");
                 enabled = false;
             }
         }
 
-        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, bool isReveal = true,
+        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex,
             CancellationToken cancellationToken = default)
         {
-            Transform handAnchor = GetHandAnchor(playerIndex, isReveal);
-            if (handAnchor == null)
-            {
-                Debug.LogError($"Hand anchor for player {playerIndex} not found.");
-                return null;
-            }
-
             try
             {
-                GameObject tileObj = tilePool.Get();
-                if (tileObj == null)
-                {
-                    Debug.LogWarning("Failed to retrieve tile from pool.");
-                    return null;
-                }
+                Transform handAnchor = GetHandAnchor(playerIndex, true);
+                int handIndex = handAnchor.childCount;
+                int totalCards = handIndex + 1;
 
-                MahjongTile tile = deckManager.DrawTile();
-                if (tile == null)
-                {
-                    Debug.LogWarning("No tile drawn from deck.");
-                    tilePool.Return(tileObj);
-                    return null;
-                }
+                MahjongTile tile = await DrawAndPlaceTileAsync(playerIndex, handAnchor, handAnchor.childCount,
+                    totalCards: totalCards, cancellationToken);
 
-                tile.SetGameObject(tileObj);
-                tileObj.transform.SetParent(handAnchor);
-
-                int currentHandCount = handAnchor.childCount;
-                int totalCards = currentHandCount + 1;
-                float rowWidth = totalCards * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) -
-                                 MahjongConfig.TileSpacing;
-                float start = -rowWidth / 2f;
-                float pos = start + (totalCards - 1 - currentHandCount) *
-                    (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
-                TilePositioner.PositionTile(tileObj, handAnchor, currentHandCount, totalCards);
-
-                if (!isReveal)
-                {
-                    tileObj.transform.localRotation = Quaternion.Euler(90, 0, 0);
-                }
-
-                if (tileAnimator != null)
-                {
-                    Vector3 localPos = handAnchor.InverseTransformPoint(tileObj.transform.position);
-                    await tileAnimator.AnimateDrawAsync(tile, localPos, cancellationToken);
-                }
-
-                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.DealAnimationDelay),
-                    cancellationToken: cancellationToken);
-
-                activeTiles.Add(tile);
-                Debug.Log(
-                    $"Drew tile for Player {playerIndex}: {tile.Suit} {tile.Number} at position {tileObj.transform.position.x}, currentHandCount={currentHandCount}, totalCards={totalCards}, pos={pos}");
                 return tile;
             }
             catch (Exception ex)
@@ -100,6 +54,7 @@ namespace MahjongGame
                 return null;
             }
         }
+
 
         public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor,
             CancellationToken cancellationToken = default)
@@ -110,18 +65,18 @@ namespace MahjongGame
                 return false;
             }
 
-            if (tile == null || tile.GameObject == null || !activeTiles.Contains(tile))
-            {
-                Debug.LogWarning(
-                    $"Invalid tile to discard. Tile: {(tile == null ? "null" : tile.ToString())}, ActiveTiles Count: {activeTiles.Count}");
-                return false;
-            }
-
-            if (discardAnchor == null)
-            {
-                Debug.LogWarning("Discard anchor is null.");
-                return false;
-            }
+            // if (tile == null || tile.GameObject == null || !activeTiles.Contains(tile))
+            // {
+            //     Debug.LogWarning(
+            //         $"Invalid tile to discard. Tile: {(tile == null ? "null" : tile.ToString())}, ActiveTiles Count: {activeTiles.Count}");
+            //     return false;
+            // }
+            //
+            // if (discardAnchor == null)
+            // {
+            //     Debug.LogWarning("Discard anchor is null.");
+            //     return false;
+            // }
 
             try
             {
@@ -133,11 +88,11 @@ namespace MahjongGame
                     await tileAnimator.AnimateDiscardAsync(tile, discardPos, cancellationToken);
                 }
 
-                bool removed = activeTiles.Remove(tile);
-                if (!removed)
-                {
-                    Debug.LogWarning($"Failed to remove tile {tile.Suit} {tile.Number} from activeTiles.");
-                }
+                // bool removed = activeTiles.Remove(tile);
+                // if (!removed)
+                // {
+                //     Debug.LogWarning($"Failed to remove tile {tile.Suit} {tile.Number} from activeTiles.");
+                // }
 
                 Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
                 return true;
@@ -149,88 +104,138 @@ namespace MahjongGame
             }
         }
 
-        public async UniTask<bool> DealHandCardsByDiceAsync(int dice1, int dice2, CancellationToken cancellationToken)
+        public async UniTask<bool> DealHandCardsByDiceAsync(CancellationToken cancellationToken)
         {
-            try
+            Transform[] anchorTransforms = InitializeHandAnchors(true);
+            int[] playerCardCounts = new int[4];
+            int banker = GameDataManager.Instance.BankerIndex;
+
+            int[] handTotals = InitializeHandTotals(banker);
+
+            for (int round = 0; round < 3; round++)
             {
-                int startIndex = (dice1 + dice2 - 1) % 4;
-                Transform[] anchorTransforms = InitializeHandAnchors(true);
-                List<GameObject> allTiles = GetActiveTiles();
-
-                if (allTiles == null || allTiles.Count < 54)
-                {
-                    Debug.LogError($"Not enough tiles to deal hand cards. Available: {allTiles?.Count ?? 0}");
-                    return false;
-                }
-
-                int[] playerCardCounts = new int[4];
-                int[] handTotals = InitializeHandTotals(startIndex);
-
-                for (int round = 0; round < 3; round++)
-                {
-                    for (int p = 0; p < 4; p++)
-                    {
-                        int player = (startIndex + p) % 4;
-                        await DealHandCardsAsync(player, 4, handTotals[player], anchorTransforms, allTiles,
-                            playerCardCounts, cancellationToken);
-                    }
-                }
-
                 for (int p = 0; p < 4; p++)
                 {
-                    int player = (startIndex + p) % 4;
-                    await DealHandCardsAsync(player, 1, handTotals[player], anchorTransforms, allTiles,
-                        playerCardCounts, cancellationToken);
+                    int player = (banker + p) % 4;
+                    await DealHandCardsAsync(player, 4, handTotals[player], anchorTransforms, playerCardCounts,
+                        cancellationToken);
                 }
-
-                await DealHandCardsAsync(startIndex, 1, handTotals[startIndex], anchorTransforms, allTiles,
-                    playerCardCounts, cancellationToken);
-
-                return true;
             }
-            catch (Exception ex)
+
+            for (int p = 0; p < 4; p++)
             {
-                Debug.LogError($"DealHandCardsByDiceAsync failed: {ex.Message}");
-                return false;
+                int player = (banker + p) % 4;
+                await DealHandCardsAsync(player, 1, handTotals[player], anchorTransforms, playerCardCounts,
+                    cancellationToken);
+            }
+
+            await DealHandCardsAsync(banker, 1, handTotals[banker], anchorTransforms, playerCardCounts,
+                cancellationToken);
+            await UniTask.WhenAll(
+                Enumerable.Range(0, 4).Select(p =>
+                {
+                    int player = (banker + p) % 4;
+                    return RevealHandAsync(anchorTransforms[player]);
+                })
+            );
+
+            return true;
+        }
+        private async UniTask RevealHandAsync(Transform anchor)
+        {
+            // 第一步：所有牌同时转向正面 (0, 0, 0)
+            var resetTasks = new List<UniTask>();
+            foreach (Transform tile in anchor)
+            {
+                Tweener tween = tile.DOLocalRotate(Vector3.zero, 0.1f); // 快速归位
+                resetTasks.Add(tween.ToUniTask());
+            }
+            await UniTask.WhenAll(resetTasks);
+
+            // 第二步：短暂停顿，制造动画节奏
+            await UniTask.Delay(100); // 100ms，可调
+
+            // 第三步：所有牌同时翻开 (-90, 0, 0)
+            var flipTasks = new List<UniTask>();
+            foreach (Transform tile in anchor)
+            {
+                Tweener tween = tile.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f);
+                flipTasks.Add(tween.ToUniTask());
+            }
+            await UniTask.WhenAll(flipTasks);
+        }
+
+        private async UniTask<MahjongTile> DrawAndPlaceTileAsync(
+            int playerIndex,
+            Transform anchor,
+            int handIndex,
+            int totalCards,
+            CancellationToken cancellationToken)
+        {
+            MahjongTile tile = rackManager.DrawTileFromRack();
+            if (tile == null)
+            {
+                Debug.LogWarning($"No more tiles to draw for player {playerIndex}.");
+                return null;
+            }
+
+            GameObject tileObj = tile.GameObject;
+            tileObj.transform.SetParent(anchor);
+
+            // 定位
+            TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards);
+            // await AnimateDrawTileAsync(tile, anchor, cancellationToken);
+            return tile;
+        }
+        
+        private async UniTask AnimateDrawTileAsync(MahjongTile tile, Transform anchor,
+            CancellationToken cancellationToken)
+        {
+            if (tileAnimator != null)
+            {
+                Vector3 localPos = anchor.InverseTransformPoint(tile.GameObject.transform.position);
+                await tileAnimator.AnimateDrawAsync(tile, localPos, cancellationToken);
             }
         }
 
+        private async UniTask DealHandCardsAsync(int player, int count, int totalCards,
+            Transform[] anchorTransforms, int[] playerCardCounts, CancellationToken cancellationToken)
+        {
+            if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
+                return;
+
+            Transform anchor = anchorTransforms[player];
+            List<UniTask> flipTasks = new List<UniTask>();
+
+            for (int j = 0; j < count; j++)
+            {
+                MahjongTile tile = rackManager.DrawTileFromRack();
+                if (tile == null)
+                {
+                    Debug.LogWarning($"No more tiles to draw for player {player}.");
+                    break;
+                }
+
+                GameObject tileObj = tile.GameObject;
+                tileObj.transform.SetParent(anchor);
+
+                // 定位
+                TilePositioner.PositionTile(tileObj, anchor, playerCardCounts[player], totalCards);
+
+                // 启动翻转动画，但不 await，收集任务
+                var flipTween = tileObj.transform.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f);
+                flipTasks.Add(flipTween.ToUniTask());
+                playerCardCounts[player]++;
+            }
+            // 等待所有翻转动画完成
+            await UniTask.WhenAll(flipTasks);
+        }
+
+
+
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                Transform[] revealAnchors = InitializeHandAnchors(true);
-                List<GameObject> allTiles = GetActiveTiles();
-
-                if (allTiles == null || allTiles.Count < 54)
-                {
-                    Debug.LogError($"Not enough tiles to reveal hand cards. Available: {allTiles?.Count ?? 0}");
-                    return false;
-                }
-
-                int[] playerCardCounts = new int[4];
-                int[] handTotals = InitializeHandTotals(0);
-
-                for (int player = 0; player < 4; player++)
-                {
-                    Transform anchor = revealAnchors[player];
-                    if (anchor == null) continue;
-
-                    List<GameObject> playerTiles = allTiles.Take(handTotals[player]).ToList();
-                    allTiles.RemoveRange(0, playerTiles.Count);
-
-                    await RepositionHandCardsAsync(player, handTotals[player], anchor, playerTiles, playerCardCounts,
-                        cancellationToken);
-                }
-
-                Debug.Log("Hand cards revealed!");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"RevealHandCardsAsync failed: {ex.Message}");
-                return false;
-            }
+            return true;
         }
 
         private Transform GetHandAnchor(int playerIndex, bool isReveal)
@@ -240,6 +245,7 @@ namespace MahjongGame
             {
                 return HandSelfPlaying;
             }
+
             // 通用处理：使用 anchorTransforms
             if (playerIndex < 0 || playerIndex >= anchorTransforms.Length)
             {
@@ -250,7 +256,6 @@ namespace MahjongGame
             Transform anchor = anchorTransforms[playerIndex];
             return anchor;
         }
-        
 
         private Transform[] InitializeHandAnchors(bool isReveal)
         {
@@ -266,12 +271,10 @@ namespace MahjongGame
                 {
                     anchors[i] = anchorTransforms[i];
                 }
-                
             }
 
             return anchors;
         }
-
 
         private int[] InitializeHandTotals(int startIndex)
         {
@@ -283,56 +286,6 @@ namespace MahjongGame
 
             handTotals[startIndex] = MahjongConfig.EastExtraCard;
             return handTotals;
-        }
-
-        private async UniTask DealHandCardsAsync(int player, int count, int totalCards, Transform[] anchorTransforms,
-            List<GameObject> handCards, int[] playerCardCounts, CancellationToken cancellationToken)
-        {
-            if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
-            {
-                return;
-            }
-
-            Transform anchor = anchorTransforms[player];
-
-            for (int j = 0; j < count && handCards.Count > 0; j++)
-            {
-                GameObject tile = handCards[0];
-                handCards.RemoveAt(0);
-                tile.transform.SetParent(anchor);
-
-                TilePositioner.PositionTile(tile, anchor, playerCardCounts[player], totalCards);
-
-                playerCardCounts[player]++;
-                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.DealAnimationDelay),
-                    cancellationToken: cancellationToken);
-            }
-        }
-
-        private async UniTask RepositionHandCardsAsync(int player, int totalCards, Transform anchor,
-            List<GameObject> playerTiles, int[] playerCardCounts, CancellationToken cancellationToken)
-        {
-            if (anchor == null || playerCardCounts[player] >= totalCards)
-            {
-                return;
-            }
-
-            for (int j = 0; j < playerTiles.Count; j++)
-            {
-                GameObject tile = playerTiles[j];
-                tile.transform.SetParent(anchor);
-
-                TilePositioner.PositionTile(tile, anchor, playerCardCounts[player], totalCards);
-
-                playerCardCounts[player]++;
-                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.DealAnimationDelay),
-                    cancellationToken: cancellationToken);
-            }
-        }
-
-        public List<GameObject> GetActiveTiles()
-        {
-            return activeTiles.Where(t => t?.GameObject != null).Select(t => t.GameObject).ToList();
         }
     }
 }

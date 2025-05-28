@@ -7,6 +7,7 @@ namespace MahjongGame
     {
         public MahjongType Type { get; private set; }
         [SerializeField] private MeshFilter meshFilter;
+        public MahjongTile TileData { get; private set; }  // ✅ 新增：持有数据引用
         private static Mesh[] meshes; // Static cache for meshes
 
         private void Awake()
@@ -14,28 +15,18 @@ namespace MahjongGame
             if (meshFilter == null)
             {
                 meshFilter = GetComponent<MeshFilter>();
-                if (meshFilter == null)
-                {
-                    Debug.LogError($"MeshFilter not found on {gameObject.name}. Disabling component.");
-                    enabled = false;
-                    return;
-                }
             }
 
             LoadMeshes();
         }
-
+        public void BindTile(MahjongTile tile)
+        {
+            TileData = tile;
+            SetType(tile.Type); // 可选，自动设置类型
+        }
         private static void LoadMeshes()
         {
-            if (meshes != null) return; // Already loaded
-
             Mesh[] allMeshes = Resources.LoadAll<Mesh>("Meshes");
-            if (allMeshes == null || allMeshes.Length == 0)
-            {
-                Debug.LogError("No Mesh resources found in Resources/Meshes folder!");
-                return;
-            }
-
             var mahjongTypes = System.Enum.GetValues(typeof(MahjongType));
             meshes = new Mesh[mahjongTypes.Length];
 
@@ -54,15 +45,6 @@ namespace MahjongGame
                             break;
                         }
                     }
-                }
-            }
-
-            for (int i = 0; i < meshes.Length; i++)
-            {
-                if (meshes[i] == null)
-                {
-                    Debug.LogWarning(
-                        $"Mesh not found for MahjongType: {(MahjongType)i}, expected pinyin: {MahjongTileData.GetPinyinForMahjongType((MahjongType)i)}");
                 }
             }
         }

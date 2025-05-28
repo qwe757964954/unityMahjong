@@ -30,6 +30,9 @@ namespace MahjongGame
         {
             GameObject tileObj = tilePool.Get();
             tileData.SetGameObject(tileObj);
+            // ✅ 绑定数据到 MahjongDisplay
+            MahjongDisplay display = tileObj.GetComponent<MahjongDisplay>();
+            display.BindTile(tileData); // ✅ 这里绑定 MahjongTile 数据
             tileObj.transform.SetParent(rack.transform, false);
 
             Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex);
@@ -70,5 +73,37 @@ namespace MahjongGame
             };
             return rotation;
         }
+        public MahjongTile DrawTileFromRack()
+        {
+            int banker = GameDataManager.Instance.BankerIndex;
+
+            for (int i = 0; i < 4; i++)
+            {
+                int currentPlayer = (banker + i) % 4;
+                Transform rack = anchorTransforms[currentPlayer].Find($"RackOffset_{currentPlayer}");
+                if (rack == null || rack.childCount == 0)
+                {
+                    continue;
+                }
+
+                // 抓最上面的一张牌（第一个 child）
+                Transform tileTransform = rack.GetChild(0);
+                MahjongDisplay display = tileTransform.GetComponent<MahjongDisplay>();
+                if (display == null || display.TileData == null)
+                {
+                    Debug.LogWarning($"MahjongDisplay component or TileData missing on rack {currentPlayer}.");
+                    continue;
+                }
+                MahjongTile tile = display.TileData;
+                tileTransform.SetParent(null); // 从 rack 分离出来
+                tileTransform.gameObject.name = $"Drawn_{tileTransform.gameObject.name}";
+                Debug.Log($"[RackManager] Player {currentPlayer} 抓牌成功。");
+                return tile;
+            }
+
+            Debug.LogWarning("No tiles left in any rack.");
+            return null;
+        }
     }
+    
 }

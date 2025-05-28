@@ -67,7 +67,7 @@ namespace MahjongGame
             rackManager.Initialize(mahjongTable);
 
             handManager = GetComponent<HandManager>() ?? gameObject.AddComponent<HandManager>();
-            handManager.Initialize(mahjongTable, tilePool, tileAnimator, deckManager, activeTiles);
+            handManager.Initialize(mahjongTable, tileAnimator, rackManager);
         }
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
@@ -126,31 +126,35 @@ namespace MahjongGame
         private void CreateTilesOnRacks()
         {
             int tilesPerRack = gameRule.TilesPerPlayer;
-
             GameObject[] racks = rackManager.CreateRackOffsets();
             int tileIndex = 0;
-            for (int rackIndex = 0; rackIndex < 4; rackIndex++)
+
+            int banker = GameDataManager.Instance.BankerIndex;
+
+            for (int p = 0; p < 4; p++)
             {
+                int player = (banker + p) % 4;
                 for (int i = 0; i < tilesPerRack; i++)
                 {
                     MahjongTile tile = deckManager.DrawTile();
-                    if (rackManager.CreateTileOnRack(racks[rackIndex], rackIndex, i, tile, tilePool))
+                    if (rackManager.CreateTileOnRack(racks[player], player, i, tile, tilePool))
                     {
                         activeTiles.Add(tile);
                     }
                     else
                     {
-                        Debug.LogWarning($"Failed to create tile {tileIndex} on Rack {rackIndex}");
+                        Debug.LogWarning($"Failed to create tile {tileIndex} on Rack {player}");
                     }
                     tileIndex++;
                 }
             }
         }
 
-        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, bool isReveal = true,
+
+        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex,
             CancellationToken cancellationToken = default)
         {
-            return await handManager.DrawTileAsync(playerIndex,isReveal, cancellationToken);
+            return await handManager.DrawTileAsync(playerIndex, cancellationToken);
         }
 
         public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor,
@@ -159,9 +163,9 @@ namespace MahjongGame
             return await handManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
         }
 
-        public async UniTask<bool> DealHandCardsByDiceAsync(int dice1, int dice2, CancellationToken cancellationToken)
+        public async UniTask<bool> DealHandCardsByDiceAsync( CancellationToken cancellationToken)
         {
-            return await handManager.DealHandCardsByDiceAsync(dice1, dice2, cancellationToken);
+            return await handManager.DealHandCardsByDiceAsync(cancellationToken);
         }
 
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
@@ -203,12 +207,7 @@ namespace MahjongGame
             activeTiles.Clear();
             deckManager.ClearDeck();
         }
-
-        public List<GameObject> GetActiveTiles()
-        {
-            return handManager.GetActiveTiles();
-        }
-
+        
         public List<MahjongTile> GetActiveMahjongTiles()
         {
             return new List<MahjongTile>(activeTiles);
