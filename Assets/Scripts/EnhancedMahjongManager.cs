@@ -25,7 +25,7 @@ namespace MahjongGame
         private DeckManager deckManager;
         private RackManager rackManager;
         private HandManager handManager;
-
+        private DiscardManager discardManager;
         public GameObject MahjongTable
         {
             get => mahjongTable;
@@ -68,6 +68,8 @@ namespace MahjongGame
 
             handManager = GetComponent<HandManager>() ?? gameObject.AddComponent<HandManager>();
             handManager.Initialize(mahjongTable, tileAnimator, rackManager);
+
+            discardManager = GetComponent<DiscardManager>() ?? gameObject.AddComponent<DiscardManager>();
         }
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
@@ -157,13 +159,13 @@ namespace MahjongGame
             return await handManager.DrawTileAsync(playerIndex, cancellationToken);
         }
 
-        public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor,
+        public async UniTask<bool> DiscardTileAsync(MahjongTile tile, int playerIndex,
             CancellationToken cancellationToken = default)
         {
-            return await handManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
+            return await discardManager.DiscardTileAsync(tile, playerIndex, cancellationToken);
         }
 
-        public async UniTask<bool> DealHandCardsByDiceAsync( CancellationToken cancellationToken)
+        public async UniTask<bool> DealHandCardsByDiceAsync(CancellationToken cancellationToken)
         {
             return await handManager.DealHandCardsByDiceAsync(cancellationToken);
         }
@@ -193,7 +195,29 @@ namespace MahjongGame
                 Debug.LogError($"Animation playback failed: {ex.Message}");
             }
         }
+        public MahjongTile GetLastHandTile(int playerIndex)
+        {
+            Transform handAnchor = handManager.GetHandAnchor(playerIndex, true);
+            if (handAnchor == null || handAnchor.childCount == 0)
+            {
+                Debug.LogWarning($"No tiles in hand for player {playerIndex}.");
+                return null;
+            }
 
+            Transform lastTileTransform = handAnchor.GetChild(handAnchor.childCount - 1);
+            Debug.Log($"lastTileTransform.....{handAnchor.childCount}.{lastTileTransform}");
+
+            MahjongDisplay display = lastTileTransform.GetComponent<MahjongDisplay>();
+            if (display == null || display.TileData == null)
+            {
+                Debug.LogWarning("MahjongDisplay component or TileData missing on last tile.");
+                return null;
+            }
+
+            // Retrieve the MahjongTile from the MahjongDisplay component
+            MahjongTile tile = display.TileData;
+            return tile;
+        }
         private void ClearTiles()
         {
             foreach (var tile in activeTiles)
@@ -207,7 +231,7 @@ namespace MahjongGame
             activeTiles.Clear();
             deckManager.ClearDeck();
         }
-        
+
         public List<MahjongTile> GetActiveMahjongTiles()
         {
             return new List<MahjongTile>(activeTiles);

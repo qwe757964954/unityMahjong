@@ -11,7 +11,6 @@ namespace MahjongGame
 {
     public class HandManager : MonoBehaviour
     {
-        [SerializeField] private GameObject mahjongTable;
         [SerializeField] private TileAnimator tileAnimator;
 
         [Header("HandSelfPlaying")] [SerializeField]
@@ -24,10 +23,9 @@ namespace MahjongGame
 
         public void Initialize(GameObject table, TileAnimator animator, RackManager rack)
         {
-            mahjongTable = table;
             tileAnimator = animator;
             rackManager = rack;
-            if (mahjongTable == null || rackManager == null)
+            if (rackManager == null)
             {
                 Debug.LogError("Required dependencies not assigned in HandManager. Disabling component.");
                 enabled = false;
@@ -184,20 +182,9 @@ namespace MahjongGame
 
             // 定位
             TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards);
-            // await AnimateDrawTileAsync(tile, anchor, cancellationToken);
             return tile;
         }
         
-        private async UniTask AnimateDrawTileAsync(MahjongTile tile, Transform anchor,
-            CancellationToken cancellationToken)
-        {
-            if (tileAnimator != null)
-            {
-                Vector3 localPos = anchor.InverseTransformPoint(tile.GameObject.transform.position);
-                await tileAnimator.AnimateDrawAsync(tile, localPos, cancellationToken);
-            }
-        }
-
         private async UniTask DealHandCardsAsync(int player, int count, int totalCards,
             Transform[] anchorTransforms, int[] playerCardCounts, CancellationToken cancellationToken)
         {
@@ -230,15 +217,12 @@ namespace MahjongGame
             // 等待所有翻转动画完成
             await UniTask.WhenAll(flipTasks);
         }
-
-
-
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
             return true;
         }
 
-        private Transform GetHandAnchor(int playerIndex, bool isReveal)
+        public Transform GetHandAnchor(int playerIndex, bool isReveal)
         {
             // ✅ 特殊情况：玩家 0 且是明牌阶段，使用 HandSelfPlaying
             if (playerIndex == 0 && isReveal)

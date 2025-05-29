@@ -6,6 +6,8 @@ namespace MahjongGame
     {
         // Tile dimensions and spacing
         public static float TileWidth { get; } = 0.0365f;
+        public static float TileHeight { get; } = 0.0531f;
+        
         public static float TileSpacing { get; } = 0.002f;
         public static float StackHeight { get; } = 0.021f;
         

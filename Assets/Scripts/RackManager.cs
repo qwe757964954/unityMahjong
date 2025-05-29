@@ -35,7 +35,7 @@ namespace MahjongGame
             display.BindTile(tileData); // ✅ 这里绑定 MahjongTile 数据
             tileObj.transform.SetParent(rack.transform, false);
 
-            Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex);
+            Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex,17);
             tileObj.transform.localPosition = localPos;
             tileObj.transform.localRotation = GetTileRotation(rackIndex);
 
@@ -43,24 +43,39 @@ namespace MahjongGame
             return true;
         }
 
-        private Vector3 CalculateTilePosition(int rackIndex, int tileIndex)
+        private Vector3 CalculateTilePosition(int rackIndex, int tileIndex, int totalTiles)
         {
             int col = tileIndex / 2;
-            int row = 1 - (tileIndex % 2);
+            int row = 1 - (tileIndex % 2); // row: 0 for top, 1 for bottom (2-row stacking)
 
-            float rowWidth = 17 * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) - MahjongConfig.TileSpacing;
-            float start = -rowWidth / 2f;
+            float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
 
+            // 总宽度 = tile数量 * 间隔 - 最后一个间隙
+            float rowWidth = totalTiles * spacing - MahjongConfig.TileSpacing;
+
+            // 中心居中：以中间 tile 为中心（tileIndex 从 0 开始）
+            float start = - (spacing * (totalTiles - 1)) / 2f;
+
+            // 是否反向排列（上家/对家）
             bool reverse = rackIndex == 1 || rackIndex == 2;
-            float pos = reverse ? start + (16 - col) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing)
-                                : start + col * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
 
+            // 计算偏移位置：正向 or 反向
+            float pos = reverse
+                ? start + (totalTiles - 1 - col) * spacing
+                : start + col * spacing;
+
+            // Stack 高度（第0排高度为 StackHeight，第二排为 0）
+            float height = MahjongConfig.StackHeight * row;
+
+            // 横向 or 纵向（玩家朝向）
             Vector3 localPos = (rackIndex == 1 || rackIndex == 3)
-                ? new Vector3(0, MahjongConfig.StackHeight * row, pos)
-                : new Vector3(pos, MahjongConfig.StackHeight * row, 0);
+                ? new Vector3(0, height, pos) // 左、右：纵向
+                : new Vector3(pos, height, 0); // 下、上：横向
 
             return localPos;
         }
+
+
 
         private Quaternion GetTileRotation(int playerIndex)
         {

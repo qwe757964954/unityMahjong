@@ -67,6 +67,7 @@
     <Compile Include="Assets\Scripts\EnhancedMahjongManager.cs" />
     <Compile Include="Assets\Scripts\MahjongTileData.cs" />
     <Compile Include="Assets\Scripts\MahjongTile.cs" />
+    <Compile Include="Assets\Scripts\DiscardManager.cs" />
     <None Include="Assets\WX-WASM-SDK-V2\package.json" />
     <None Include="Assets\WX-WASM-SDK-V2\mainifest.json" />
     <Reference Include="UnityEngine">

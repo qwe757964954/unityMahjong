@@ -17,10 +17,10 @@ namespace MahjongGame
         [SerializeField] private Button revealHandButton;
         [SerializeField] private Transform discardAnchor;
         [SerializeField] private InputField riceInputField;
-        [SerializeField] private GameObject playerIndexInput; // New field for player index input
+        [SerializeField] private InputField drawPlayerIndexInputField;
+        [SerializeField] private InputField discardPlayerIndexInputField;
 
         private EnhancedMahjongManager mahjongManager;
-        private InputField playerIndexInputField;
         private GameObject selectedTile;
 
         private void Start()
@@ -32,8 +32,8 @@ namespace MahjongGame
         private void InitializeReferences()
         {
             mahjongManager = FindObjectOfType<EnhancedMahjongManager>();
-            playerIndexInputField = playerIndexInput?.GetComponent<InputField>(); // Initialize player index InputField
-            Debug.Log($"InitializeReferences GameDataManager {GameDataManager.Instance } riceInputField{riceInputField }");
+            Debug.Log(
+                $"InitializeReferences GameDataManager {GameDataManager.Instance} riceInputField{riceInputField}");
             GameDataManager.Instance.SetDiceValuesFromInput(riceInputField.text);
         }
 
@@ -62,6 +62,7 @@ namespace MahjongGame
                     $"Failed to initialize game with dice. Check MahjongTable anchors and MahjongConfig.");
                 return;
             }
+
             await mahjongManager.PlayRackAnimationAsync(cancellationToken);
             await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
         }
@@ -99,13 +100,13 @@ namespace MahjongGame
 
         private int ParsePlayerIndex()
         {
-            if (playerIndexInputField == null || string.IsNullOrWhiteSpace(playerIndexInputField.text))
+            if (drawPlayerIndexInputField == null || string.IsNullOrWhiteSpace(drawPlayerIndexInputField.text))
             {
                 Debug.LogWarning("PlayerIndexInput is null or empty. Defaulting to player 0.");
                 return 0;
             }
 
-            string input = playerIndexInputField.text.Trim();
+            string input = drawPlayerIndexInputField.text.Trim();
             if (int.TryParse(input, out int playerIndex))
             {
                 // Ensure playerIndex is valid (0–3)
@@ -126,37 +127,33 @@ namespace MahjongGame
 
         private async UniTask DiscardTileAsync(CancellationToken cancellationToken)
         {
-            if (mahjongManager == null)
+            // Validate and parse player index from input field
+            if (discardPlayerIndexInputField == null || string.IsNullOrEmpty(discardPlayerIndexInputField.text))
             {
-                Debug.LogError("MahjongManager is null or disabled.");
+                Debug.LogWarning("Discard player index input field is not assigned or empty.");
                 return;
             }
 
-            try
+            if (!int.TryParse(discardPlayerIndexInputField.text, out int playerIndex) || playerIndex < 0 || playerIndex >= 4)
             {
-                if (selectedTile == null)
-                {
-                    Debug.LogWarning("No tile selected to discard.");
-                    return;
-                }
-
-                MahjongTile tile = mahjongManager.GetActiveMahjongTiles().Find(t => t.GameObject == selectedTile);
-                if (tile == null)
-                {
-                    Debug.LogWarning("Selected tile is not a valid MahjongTile.");
-                    return;
-                }
-
-                bool success = await mahjongManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
-                if (success)
-                {
-                    Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
-                    selectedTile = null;
-                }
+                Debug.LogWarning($"Invalid player index: {discardPlayerIndexInputField.text}. Must be between 0 and 3.");
+                return;
             }
-            catch (Exception ex)
+
+            // Get the last tile from the player's hand
+            MahjongTile tile = mahjongManager.GetLastHandTile(playerIndex);
+            if (tile == null)
             {
-                Debug.LogError($"DiscardTileAsync failed: {ex.Message}");
+                Debug.LogWarning($"No valid tile to discard for player {playerIndex}.");
+                return;
+            }
+            
+            // Discard the tile
+            bool success = await mahjongManager.DiscardTileAsync(tile, playerIndex, cancellationToken);
+            if (success)
+            {
+                Debug.Log($"Discarded tile: {tile.Suit} {tile.Number} for player {playerIndex}");
+                selectedTile = null; // Clear selected tile if used elsewhere
             }
         }
 
@@ -185,7 +182,7 @@ namespace MahjongGame
                 Debug.LogError($"RevealHandCardsAsync failed: {ex.Message}");
             }
         }
-        
+
         public void SelectTile(GameObject tile)
         {
             selectedTile = tile;

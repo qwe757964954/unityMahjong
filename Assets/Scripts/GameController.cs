@@ -62,52 +62,6 @@ namespace MahjongGame
             }
         }
 
-        /// <summary>
-        /// Draws a tile and plays the draw sound.
-        /// </summary>
-        private async UniTask DrawTileAsync(CancellationToken cancellationToken)
-        {
-            if (mahjongManager == null)
-            {
-                Debug.LogError("MahjongManager is null or disabled.");
-                return;
-            }
-
-            try
-            {
-                int playerIndex = 0; // Down player; adjust based on game logic
-                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, cancellationToken);
-                if (tile != null)
-                {
-                    Debug.Log($"Drew tile: {tile.Suit} {tile.Number}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"DrawTileAsync failed: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Discards a tile and plays the discard sound.
-        /// </summary>
-        public async UniTask DiscardTileAsync(MahjongTile tile, Transform discardAnchor, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                bool success = await mahjongManager.DiscardTileAsync(tile, discardAnchor, cancellationToken);
-                if (success)
-                {
-                    PlaySound(discardSound);
-                    Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
-                }
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"Failed to discard tile: {ex.Message}");
-            }
-        }
-
         private void PlaySound(AudioClip clip)
         {
             if (audioSource != null && clip != null)
