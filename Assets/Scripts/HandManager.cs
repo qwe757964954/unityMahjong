@@ -11,19 +11,19 @@ namespace MahjongGame
 {
     public class HandManager : MonoBehaviour
     {
-        [SerializeField] private TileAnimator tileAnimator;
 
-        [Header("HandSelfPlaying")] [SerializeField]
+        [Header("HandSelfPlaying")]
+        [SerializeField]
         private Transform HandSelfPlaying;
 
-        [Header("Anchor Transforms (Down, Left, Up, Right)")] [SerializeField]
+        [Header("Anchor Transforms (Down, Left, Up, Right)")]
+        [SerializeField]
         private Transform[] anchorTransforms = new Transform[4];
 
         private RackManager rackManager;
 
-        public void Initialize(GameObject table, TileAnimator animator, RackManager rack)
+        public void Initialize(GameObject table, RackManager rack)
         {
-            tileAnimator = animator;
             rackManager = rack;
             if (rackManager == null)
             {
@@ -50,55 +50,6 @@ namespace MahjongGame
             {
                 Debug.LogError($"Failed to draw tile for player {playerIndex}: {ex.Message}");
                 return null;
-            }
-        }
-
-
-        public async UniTask<bool> DiscardTileAsync(MahjongTile tile, Transform discardAnchor,
-            CancellationToken cancellationToken = default)
-        {
-            if (!enabled)
-            {
-                Debug.LogError("HandManager is disabled. Cannot discard tile.");
-                return false;
-            }
-
-            // if (tile == null || tile.GameObject == null || !activeTiles.Contains(tile))
-            // {
-            //     Debug.LogWarning(
-            //         $"Invalid tile to discard. Tile: {(tile == null ? "null" : tile.ToString())}, ActiveTiles Count: {activeTiles.Count}");
-            //     return false;
-            // }
-            //
-            // if (discardAnchor == null)
-            // {
-            //     Debug.LogWarning("Discard anchor is null.");
-            //     return false;
-            // }
-
-            try
-            {
-                tile.SetParent(discardAnchor);
-                Vector3 discardPos = Vector3.zero;
-
-                if (tileAnimator != null)
-                {
-                    await tileAnimator.AnimateDiscardAsync(tile, discardPos, cancellationToken);
-                }
-
-                // bool removed = activeTiles.Remove(tile);
-                // if (!removed)
-                // {
-                //     Debug.LogWarning($"Failed to remove tile {tile.Suit} {tile.Number} from activeTiles.");
-                // }
-
-                Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Failed to discard tile {tile.Suit} {tile.Number}: {ex.Message}");
-                return false;
             }
         }
 
@@ -178,20 +129,35 @@ namespace MahjongGame
             }
 
             GameObject tileObj = tile.GameObject;
-            tileObj.transform.SetParent(anchor);
-
-            // 定位
-            TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards);
+            // ✅ 自动挂到对应相机所渲染的 parent 上（正交 or 透视）
+            tileObj.transform.SetParent(anchor, worldPositionStays: false);
+            // ✅ 设置图层
+            int layer = (playerIndex == 0 && anchor == HandSelfPlaying)
+                ? LayerMask.NameToLayer("PlayerHandLayer")
+                : LayerMask.NameToLayer("Default");
+            LayerUtil.SetLayerRecursively(tileObj, layer);
+            // ✅ 定位处理：根据是否正交相机调整布局
+            bool isOrtho = (playerIndex == 0); // 默认仅自己为正交相机
+            TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards, isOrtho);
             return tile;
         }
-        
-        private async UniTask DealHandCardsAsync(int player, int count, int totalCards,
-            Transform[] anchorTransforms, int[] playerCardCounts, CancellationToken cancellationToken)
+
+
+        private async UniTask DealHandCardsAsync(
+            int player,
+            int count,
+            int totalCards,
+            Transform[] anchorTransforms,
+            int[] playerCardCounts,
+            CancellationToken cancellationToken)
         {
             if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
                 return;
-
             Transform anchor = anchorTransforms[player];
+            bool isSelfReveal = (player == 0 && anchor == HandSelfPlaying);
+
+            bool isOrtho = (player == 0); // ✅ 自己是正交相机
+
             List<UniTask> flipTasks = new List<UniTask>();
 
             for (int j = 0; j < count; j++)
@@ -204,22 +170,67 @@ namespace MahjongGame
                 }
 
                 GameObject tileObj = tile.GameObject;
-                tileObj.transform.SetParent(anchor);
+                tileObj.transform.SetParent(anchor, false);
+                // ✅ 设置图层
+                int layer = isSelfReveal
+                    ? LayerMask.NameToLayer("PlayerHandLayer")
+                    : LayerMask.NameToLayer("Default");
+                LayerUtil.SetLayerRecursively(tileObj, layer);
+                // ✅ 正确地计算偏移
+                TilePositioner.PositionTile(tileObj, anchor, playerCardCounts[player], totalCards, isOrtho);
 
-                // 定位
-                TilePositioner.PositionTile(tileObj, anchor, playerCardCounts[player], totalCards);
-
-                // 启动翻转动画，但不 await，收集任务
+                // ✅ 启动翻牌动画
                 var flipTween = tileObj.transform.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f);
                 flipTasks.Add(flipTween.ToUniTask());
+
                 playerCardCounts[player]++;
             }
-            // 等待所有翻转动画完成
+
             await UniTask.WhenAll(flipTasks);
         }
+
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
             return true;
+        }
+        public MahjongTile GetHandTile(int playerIndex, bool isReveal, int indexFromEnd = 0)
+        {
+            Transform handAnchor = GetHandAnchor(playerIndex, isReveal);
+            if (handAnchor == null || handAnchor.childCount == 0) return null;
+
+            int targetIndex = Mathf.Clamp(handAnchor.childCount - 1 - indexFromEnd, 0, handAnchor.childCount - 1);
+            Transform tileTransform = handAnchor.GetChild(targetIndex);
+            MahjongDisplay display = tileTransform.GetComponent<MahjongDisplay>();
+            return display?.TileData;
+        }
+        public List<MahjongTile> GetLastNHandTiles(int playerIndex, bool isReveal, int count)
+        {
+            List<MahjongTile> result = new List<MahjongTile>();
+            Transform handAnchor = GetHandAnchor(playerIndex, isReveal);
+
+            if (handAnchor == null || handAnchor.childCount == 0)
+            {
+                Debug.LogWarning($"No tiles in hand for player {playerIndex}.");
+                return result;
+            }
+
+            int startIndex = Mathf.Max(handAnchor.childCount - count, 0);
+
+            for (int i = startIndex; i < handAnchor.childCount; i++)
+            {
+                Transform tileTransform = handAnchor.GetChild(i);
+                MahjongDisplay display = tileTransform.GetComponent<MahjongDisplay>();
+                if (display != null && display.TileData != null)
+                {
+                    result.Add(display.TileData);
+                }
+                else
+                {
+                    Debug.LogWarning($"Missing MahjongDisplay or TileData on hand tile at index {i}.");
+                }
+            }
+
+            return result;
         }
 
         public Transform GetHandAnchor(int playerIndex, bool isReveal)

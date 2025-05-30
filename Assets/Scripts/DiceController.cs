@@ -3,27 +3,35 @@
 public class DiceController : MonoBehaviour
 {
     [Header("Dice GameObjects")]
-    public GameObject dice1;
-    public GameObject dice2;
-    public Rigidbody[] dice;
-    public float force = 10f;
-    public float torque = 10f;
-    public Transform throwPoint;
-    // 色子点数到旋转角度的映射（可根据实际模型调整）
-    private static readonly Vector3[] diceRotations = new Vector3[]
+    [SerializeField] public GameObject dice1;
+    [SerializeField] public GameObject dice2;
+    // 色子1点数到旋转角度的映射（可根据实际模型调整）
+    private static readonly Vector3[] diceRotations1 = new Vector3[]
     {
-        new Vector3(0, 0, 0),      // 占位，点数从1开始
-        new Vector3(-90, 0, 0),     // 1
-        new Vector3(0, 90, 0),    // 2
-        new Vector3(0, 180, 0),    // 3
-        new Vector3(0, 0, 0),      // 4
-        new Vector3(0, 270, 0),     // 5
-        new Vector3(0, 90, 90),     // 6
+        new Vector3(0, 0, -90),      // 占位，点数从1开始
+        new Vector3(0, 0, -90),     // 1
+        new Vector3(0, 22, 90),    // 2
+        new Vector3(0, 0, 0),    // 3
+        new Vector3(0, 0, 180),      // 4
+        new Vector3(0, -22, 90),     // 5
+        new Vector3(0, 0, 90),     // 6
         
     };
+    // 色子2点数到旋转角度的映射（可根据实际模型调整）
+    private static readonly Vector3[] diceRotations2 = new Vector3[]
+    {
+        new Vector3(0, 0, 0),      // 占位，点数从1开始
+        new Vector3(0, 0, 90),     // 1
+        new Vector3(0, 0, -180),    // 2
+        // new Vector3(0, 180, 0),    // 3
+        new Vector3(0, 0, 0),      // 4
+        new Vector3(0, 0, 0),     // 5
+        new Vector3(0, 0, -90),     // 6
+        
+    };
+
     void Start()
     {
-        RollDice();
     }
     // 设置两个色子的点数
     public void SetDiceNumbers(int num1, int num2)
@@ -34,28 +42,8 @@ public class DiceController : MonoBehaviour
             return;
         }
         if (dice1 != null)
-            dice1.transform.localEulerAngles = diceRotations[num1];
+            dice1.transform.localEulerAngles = diceRotations1[num1];
         if (dice2 != null)
-            dice2.transform.localEulerAngles = diceRotations[num2];
-    }
-    
-    public void RollDice()
-    {
-        foreach (var die in dice)
-        {
-            die.velocity = Vector3.zero;
-            die.angularVelocity = Vector3.zero;
-            die.transform.position = throwPoint.position + Random.insideUnitSphere * 0.1f;
-            die.transform.rotation = Random.rotation;
-            Debug.Log("RollDice.....");
-            Vector3 randomDir = new Vector3(
-                Random.Range(-1f, 1f),
-                1f,
-                Random.Range(-1f, 1f)
-            ).normalized;
-
-            die.AddForce(randomDir * force, ForceMode.Impulse);
-            die.AddTorque(Random.insideUnitSphere * torque, ForceMode.Impulse);
-        }
+            dice2.transform.localEulerAngles = diceRotations2[num2];
     }
 }

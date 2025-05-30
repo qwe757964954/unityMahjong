@@ -12,7 +12,6 @@ namespace MahjongGame
         [Header("References")]
         public EnhancedMahjongManager mahjongManager;
         public HandOperationCanvas handCanvas;
-        public TileAnimator tileAnimator;
 
         [Header("Audio")]
         public AudioSource audioSource;
@@ -31,8 +30,6 @@ namespace MahjongGame
                 mahjongManager = FindObjectOfType<EnhancedMahjongManager>();
             if (handCanvas == null)
                 handCanvas = FindObjectOfType<HandOperationCanvas>();
-            if (tileAnimator == null)
-                tileAnimator = GetComponent<TileAnimator>() ?? gameObject.AddComponent<TileAnimator>();
             if (audioSource == null)
                 audioSource = GetComponent<AudioSource>();
         }

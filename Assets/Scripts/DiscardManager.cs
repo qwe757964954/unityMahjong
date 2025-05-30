@@ -11,10 +11,6 @@ namespace MahjongGame
         [Header("Anchor Transforms (Down, Left, Up, Right)")]
         [SerializeField]
         public Transform[] anchorTransforms = new Transform[4];
-
-        [SerializeField]
-        private TileAnimator tileAnimator; // Add reference to TileAnimator
-
         private void Start()
         {
             // Validate anchorTransforms
@@ -44,14 +40,14 @@ namespace MahjongGame
             try
             {
                 tile.SetParent(discardAnchor);
-
+                LayerUtil.SetLayerRecursively(tile.GameObject, LayerMask.NameToLayer("Default"));
                 int discardIndex = discardAnchor.childCount-1;
                 TilePositioner.PositionDiscardTile(tile.GameObject, discardAnchor, discardIndex);
 
-                if (tileAnimator != null)
-                {
+                // if (tileAnimator != null)
+                // {
                     // await tileAnimator.AnimateDiscardAsync(tile, tile.GameObject.transform.localPosition, cancellationToken);
-                }
+                // }
 
                 Debug.Log($"Discarded tile: {tile.Suit} {tile.Number}");
                 return true;
@@ -61,6 +57,15 @@ namespace MahjongGame
                 Debug.LogError($"Failed to discard tile {tile.Suit} {tile.Number}: {ex.Message}");
                 return false;
             }
+        }
+        public MahjongTile GetDiscardTile(int playerIndex, int indexFromEnd = 0)
+        {
+            Transform discardAnchor = anchorTransforms[playerIndex];
+            if (discardAnchor == null || discardAnchor.childCount == 0) return null;
+            int targetIndex = Mathf.Clamp(discardAnchor.childCount - 1 - indexFromEnd, 0, discardAnchor.childCount - 1);
+            Transform tileTransform = discardAnchor.GetChild(targetIndex);
+            MahjongDisplay display = tileTransform.GetComponent<MahjongDisplay>();
+            return display?.TileData;
         }
     }
 }

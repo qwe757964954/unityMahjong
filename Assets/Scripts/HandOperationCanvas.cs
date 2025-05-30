@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Threading;
-
+using System.Collections.Generic;
 namespace MahjongGame
 {
     public class HandOperationCanvas : MonoBehaviour
@@ -15,11 +15,17 @@ namespace MahjongGame
         [SerializeField] private Button drawButton;
         [SerializeField] private Button discardButton;
         [SerializeField] private Button revealHandButton;
-        [SerializeField] private Transform discardAnchor;
+        [SerializeField] private Button chouPungButton;
+        [SerializeField] private Button ExposedKongButton;
+        [SerializeField] private Button ConcealedKongButton;
+        [SerializeField] private Button SupplementKongButton;
+        [SerializeField] private Button winButton;
+        
         [SerializeField] private InputField riceInputField;
         [SerializeField] private InputField drawPlayerIndexInputField;
         [SerializeField] private InputField discardPlayerIndexInputField;
-
+        [SerializeField] private InputField actionPlayerIndexInputField;
+        
         private EnhancedMahjongManager mahjongManager;
         private GameObject selectedTile;
 
@@ -32,12 +38,10 @@ namespace MahjongGame
         private void InitializeReferences()
         {
             mahjongManager = FindObjectOfType<EnhancedMahjongManager>();
-            Debug.Log(
-                $"InitializeReferences GameDataManager {GameDataManager.Instance} riceInputField{riceInputField}");
             GameDataManager.Instance.SetDiceValuesFromInput(riceInputField.text);
         }
 
-        private void SetupButtonListeners()
+        private void  SetupButtonListeners()
         {
             if (enabled)
             {
@@ -50,9 +54,47 @@ namespace MahjongGame
                     DiscardTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 revealHandButton.onClick.AddListener(() =>
                     RevealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
+
+                chouPungButton.onClick.AddListener(() =>
+                    ChouActionAsync()); 
+                ExposedKongButton.onClick.AddListener(() =>
+                    PungActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                ConcealedKongButton.onClick.AddListener(() =>
+                    KongActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                SupplementKongButton.onClick.AddListener(() =>
+                    KongActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                winButton.onClick.AddListener(() =>
+                    WinActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
             }
         }
 
+        private void ChouActionAsync()
+        {
+            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' }, StringSplitOptions.RemoveEmptyEntries);
+            int n1 = 1, n2 = 1;
+            if (nums.Length >= 2)
+            {
+                int.TryParse(nums[0], out n1);
+                int.TryParse(nums[1], out n2);
+            }
+            List<MahjongTile> tiles = mahjongManager.GetLastTwoHandTiles(n1);
+            MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
+            mahjongManager.PlaceChowPungKong(n1,n2, tiles, targetTile);
+        }
+        private async UniTask PungActionAsync(CancellationToken cancellationToken)
+        {
+            
+        }
+        
+        private async UniTask KongActionAsync(CancellationToken cancellationToken)
+        {
+            
+        }
+        
+        private async UniTask WinActionAsync(CancellationToken cancellationToken)
+        {
+            
+        }
         private async UniTask ShuffleAndSetDiceAsync(CancellationToken cancellationToken)
         {
             bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
@@ -62,9 +104,7 @@ namespace MahjongGame
                     $"Failed to initialize game with dice. Check MahjongTable anchors and MahjongConfig.");
                 return;
             }
-
-            await mahjongManager.PlayRackAnimationAsync(cancellationToken);
-            await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: cancellationToken);
+            mahjongManager.PlayRackAnimation();
         }
 
         private async UniTask DealHandCardsAsync(CancellationToken cancellationToken)

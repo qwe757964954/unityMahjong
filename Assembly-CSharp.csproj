@@ -48,6 +48,7 @@
     <Compile Include="Assets\Scripts\GameController.cs" />
     <Compile Include="Assets\Scripts\MahjongTableFitter.cs" />
     <Compile Include="Assets\Scripts\MahjongDisplay.cs" />
+    <Compile Include="Assets\Scripts\MahjongTableTimeline.cs" />
     <Compile Include="Assets\Scripts\DiceController.cs" />
     <Compile Include="Assets\Scripts\TileAnimator.cs" />
     <Compile Include="Assets\Scripts\MahjongConfig.cs" />
@@ -55,15 +56,14 @@
     <Compile Include="Assets\Scripts\EnhancedObjectPool.cs" />
     <Compile Include="Assets\Scripts\DeckManager.cs" />
     <Compile Include="Assets\Scripts\Extensions\DOTweenSupport.cs" />
+    <Compile Include="Assets\Scripts\Utils\LayerUtil.cs" />
     <Compile Include="Assets\TutorialInfo\Scripts\Readme.cs" />
     <Compile Include="Assets\Scripts\GameDataManager.cs" />
     <Compile Include="Assets\Scripts\HandManager.cs" />
+    <Compile Include="Assets\Scripts\AreaManager.cs" />
     <Compile Include="Assets\Scripts\HandOperationCanvas.cs" />
     <Compile Include="Assets\Scripts\TilePositioner.cs" />
     <Compile Include="Assets\Scripts\RackManager.cs" />
-    <Compile Include="Assets\Scripts\DiceRoller.cs" />
-    <Compile Include="Assets\Scripts\DiceShaker.cs" />
-    <Compile Include="Assets\Scripts\DiceFaceReader.cs" />
     <Compile Include="Assets\Scripts\EnhancedMahjongManager.cs" />
     <Compile Include="Assets\Scripts\MahjongTileData.cs" />
     <Compile Include="Assets\Scripts\MahjongTile.cs" />
