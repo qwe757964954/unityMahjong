@@ -4,13 +4,11 @@ namespace MahjongGame
 {
     public static class TilePositioner
     {
-        public static void PositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards,
-            bool reverse = false, float extraOffset = 0f)
+        public static void PositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards, float extraOffset = 0f)
         {
             float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
             float totalWidth = (totalCards - 1) * spacing;
             float startOffset = -totalWidth / 2f;
-            // 牌序：reverse==true（自己家）和其他玩家都按右到左
             int index = totalCards - 1 - tileIndex;
             float offset = startOffset + index * spacing + extraOffset;
 
@@ -26,19 +24,20 @@ namespace MahjongGame
         {
             float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
             float rowWidth = totalCards * spacing;
-            Debug.Log(rowWidth);
             float offset = -rowWidth / 2;
 
             Vector3 position = anchor.position + anchor.right * offset;
             if (isSelfPlayer)
             {
-                tile.transform.position = anchor.TransformPoint(Vector3.right * offset);
+                // For self player: add half spacing to the right of the last tile
+                tile.transform.position = anchor.TransformPoint(Vector3.right * (offset - spacing / 2));
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
                 tile.transform.localScale = Vector3.one;
             }
             else
             {
-                position -= anchor.right * spacing;
+                // For other players: add half spacing to the left of the last tile
+                position -= anchor.right * (spacing / 2);
                 tile.transform.position = position;
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
                 tile.transform.localScale = MahjongConfig.PerspectiveTileScale;

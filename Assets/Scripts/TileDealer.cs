@@ -42,7 +42,7 @@ namespace MahjongGame
                 // 为庄家最后一张牌添加额外的半张牌间隔
                 float extraOffset = (isBankerExtraTile && j == count - 1) ? (-MahjongConfig.TileWidth / 2f) : 0f;
                 Debug.Log($"isBankerExtraTile:{isBankerExtraTile},,j:${j},count${count},extraOffset${extraOffset}");
-                TilePositioner.PositionTile(tileObj, anchor, handState.CurrentCardCount, handState.TotalCards, reverse,
+                TilePositioner.PositionTile(tileObj, anchor, handState.CurrentCardCount, handState.TotalCards,
                     extraOffset);
 
                 newTiles.Add(tileObj.transform);

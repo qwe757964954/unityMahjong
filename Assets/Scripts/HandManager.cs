@@ -137,7 +137,7 @@ namespace MahjongGame
                 int layer = isSelfPlayer ? LayerMask.NameToLayer("PlayerHandLayer") : LayerMask.NameToLayer("Default");
                 LayerUtil.SetLayerRecursively(tileObj, layer);
 
-                TilePositioner.PositionTile(tileObj, handAnchor, i, totalCards, isSelfPlayer);
+                TilePositioner.PositionTile(tileObj, handAnchor, i, totalCards);
 
                 tileTransform.localRotation = Quaternion.Euler(-90, 0, 0);
             }
