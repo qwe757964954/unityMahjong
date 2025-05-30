@@ -24,7 +24,7 @@ MonoBehaviour:
   - m_Version: 1
     m_Start: 0
     m_ClipIn: 0
-    m_Asset: {fileID: -4941551358947993012}
+    m_Asset: {fileID: -4037572894673808892}
     m_Duration: 3.3333333333333335
     m_TimeScale: 1
     m_ParentTrack: {fileID: -8435594624517264922}
@@ -110,7 +110,7 @@ MonoBehaviour:
   m_OpenClipOffsetRotation: {x: 0, y: 0, z: 0, w: 1}
   m_Rotation: {x: 0, y: 0, z: 0, w: 1}
   m_ApplyOffsets: 0
---- !u!114 &-4941551358947993012
+--- !u!114 &-4037572894673808892
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}

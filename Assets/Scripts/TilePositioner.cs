@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using System.Collections.Generic;
+﻿// TilePositioner.cs
+using UnityEngine;
 
 namespace MahjongGame
 {
@@ -21,23 +21,28 @@ namespace MahjongGame
             tile.transform.localRotation = Quaternion.Euler(0, 0, 0);
         }
 
-        public static void DrawPositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards, bool isOrtho = false)
+        public static void DrawPositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards, bool isOrtho = false, bool isSelfPlayer = false, bool reverse = false)
         {
             float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
             float rowWidth = (totalCards - 1) * spacing;
             float start = -rowWidth / 2f;
-            float offset = start + tileIndex * spacing;
+            int index = reverse ? tileIndex : (totalCards - 1 - tileIndex);
+            float offset = start + index * spacing;
 
-            tile.transform.position = anchor.position + anchor.right * offset;
+            Vector3 position = anchor.position + anchor.right * offset;
 
-            if (isOrtho)
+            if (isOrtho && isSelfPlayer)
             {
+                tile.transform.position = anchor.TransformPoint(Vector3.right * offset);
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
                 tile.transform.localScale = Vector3.one;
             }
             else
             {
-                tile.transform.localRotation = Quaternion.identity;
+                // 其他玩家抓牌时再偏移一个宽度
+                position -= anchor.right * spacing;
+                tile.transform.position = position;
+                tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
                 tile.transform.localScale = MahjongConfig.PerspectiveTileScale;
             }
         }
@@ -56,8 +61,7 @@ namespace MahjongGame
                 col = discardIndex % tilesPerRow;
 
                 int invCol = (tilesPerRow - 1) - col;
-                xOffset = (invCol - (tilesPerRow / 2.0f - 0.5f)) * 
-                          (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
+                xOffset = (invCol - (tilesPerRow / 2.0f - 0.5f)) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
                 zOffset = row * (MahjongConfig.TileHeight + MahjongConfig.TileSpacing);
             }
             else
@@ -69,6 +73,7 @@ namespace MahjongGame
                           - (MahjongConfig.TileWidth + MahjongConfig.TileSpacing) / 2;
                 zOffset = row * (MahjongConfig.TileHeight + MahjongConfig.TileSpacing);
             }
+
             tile.transform.position = anchor.position
                                       + (anchor.rotation * Vector3.right) * xOffset * anchor.localScale.y
                                       + (anchor.rotation * Vector3.forward) * zOffset * anchor.localScale.z;

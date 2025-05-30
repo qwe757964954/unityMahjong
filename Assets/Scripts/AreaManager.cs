@@ -90,6 +90,7 @@ namespace MahjongGame
             {
                 GameObject tileObj = orderedTiles[i].GameObject;
                 tileObj.transform.SetParent(anchor);
+                LayerUtil.SetLayerRecursively(tileObj, LayerMask.NameToLayer("Default"));
 
                 float offset;
                 bool isTarget = (targetTile != null && orderedTiles[i] == targetTile);

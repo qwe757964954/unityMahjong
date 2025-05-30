@@ -20,11 +20,17 @@ namespace MahjongGame
         
         [SerializeField]
         private MahjongTableTimeline tableTimeline;
+        [Header("Manager References")]
+        [SerializeField]
+        private DiceController diceController;
+        [SerializeField]
+        private HandManager handManager;
+        [SerializeField]
+        private AreaManager areaManager;
+        [SerializeField]
+        private DiscardManager discardManager;
         private DeckManager deckManager;
         private RackManager rackManager;
-        private HandManager handManager;
-        private DiscardManager discardManager;
-        private AreaManager areaManager;
         public GameObject MahjongTable
         {
             get => mahjongTable;
@@ -58,11 +64,6 @@ namespace MahjongGame
 
             rackManager = GetComponent<RackManager>() ?? gameObject.AddComponent<RackManager>();
             rackManager.Initialize(mahjongTable);
-
-            handManager = GetComponent<HandManager>() ?? gameObject.AddComponent<HandManager>();
-            handManager.Initialize(mahjongTable, rackManager);
-            discardManager = GetComponent<DiscardManager>() ?? gameObject.AddComponent<DiscardManager>();
-            areaManager = GetComponent<AreaManager>() ?? gameObject.AddComponent<AreaManager>();
         }
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
@@ -164,7 +165,8 @@ namespace MahjongGame
 
         public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
         {
-            return await handManager.RevealHandCardsAsync(cancellationToken);
+            // return await handManager.RevealHandCardsAsync(cancellationToken);
+            return true;
         }
 
         public void PlaceChowPungKong(int operatingPlayerIndex, int targetPlayerIndex, List<MahjongTile> tiles,
@@ -175,6 +177,7 @@ namespace MahjongGame
 
         public void PlayRackAnimation()
         {
+            diceController.SetDiceNumbers(GameDataManager.Instance.Dice1,GameDataManager.Instance.Dice2);
             tableTimeline.ResetAndPlayTimeline();
         }
 

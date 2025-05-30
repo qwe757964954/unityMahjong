@@ -32,8 +32,7 @@ namespace MahjongGame
             }
         }
 
-        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex,
-            CancellationToken cancellationToken = default)
+        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -41,8 +40,7 @@ namespace MahjongGame
                 int handIndex = handAnchor.childCount;
                 int totalCards = handIndex + 1;
 
-                MahjongTile tile = await DrawAndPlaceTileAsync(playerIndex, handAnchor, handAnchor.childCount,
-                    totalCards: totalCards, cancellationToken);
+                MahjongTile tile = await DrawAndPlaceTileAsync(playerIndex, handAnchor, handIndex, totalCards, cancellationToken);
 
                 return tile;
             }
@@ -52,68 +50,6 @@ namespace MahjongGame
                 return null;
             }
         }
-
-        public async UniTask<bool> DealHandCardsByDiceAsync(CancellationToken cancellationToken)
-        {
-            Transform[] anchorTransforms = InitializeHandAnchors(true);
-            int[] playerCardCounts = new int[4];
-            int banker = GameDataManager.Instance.BankerIndex;
-
-            int[] handTotals = InitializeHandTotals(banker);
-
-            for (int round = 0; round < 3; round++)
-            {
-                for (int p = 0; p < 4; p++)
-                {
-                    int player = (banker + p) % 4;
-                    await DealHandCardsAsync(player, 4, handTotals[player], anchorTransforms, playerCardCounts,
-                        cancellationToken);
-                }
-            }
-
-            for (int p = 0; p < 4; p++)
-            {
-                int player = (banker + p) % 4;
-                await DealHandCardsAsync(player, 1, handTotals[player], anchorTransforms, playerCardCounts,
-                    cancellationToken);
-            }
-
-            await DealHandCardsAsync(banker, 1, handTotals[banker], anchorTransforms, playerCardCounts,
-                cancellationToken);
-            await UniTask.WhenAll(
-                Enumerable.Range(0, 4).Select(p =>
-                {
-                    int player = (banker + p) % 4;
-                    return RevealHandAsync(anchorTransforms[player]);
-                })
-            );
-
-            return true;
-        }
-        private async UniTask RevealHandAsync(Transform anchor)
-        {
-            // 第一步：所有牌同时转向正面 (0, 0, 0)
-            var resetTasks = new List<UniTask>();
-            foreach (Transform tile in anchor)
-            {
-                Tweener tween = tile.DOLocalRotate(Vector3.zero, 0.1f); // 快速归位
-                resetTasks.Add(tween.ToUniTask());
-            }
-            await UniTask.WhenAll(resetTasks);
-
-            // 第二步：短暂停顿，制造动画节奏
-            await UniTask.Delay(100); // 100ms，可调
-
-            // 第三步：所有牌同时翻开 (-90, 0, 0)
-            var flipTasks = new List<UniTask>();
-            foreach (Transform tile in anchor)
-            {
-                Tweener tween = tile.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f);
-                flipTasks.Add(tween.ToUniTask());
-            }
-            await UniTask.WhenAll(flipTasks);
-        }
-
         private async UniTask<MahjongTile> DrawAndPlaceTileAsync(
             int playerIndex,
             Transform anchor,
@@ -129,34 +65,62 @@ namespace MahjongGame
             }
 
             GameObject tileObj = tile.GameObject;
-            // ✅ 自动挂到对应相机所渲染的 parent 上（正交 or 透视）
-            tileObj.transform.SetParent(anchor, worldPositionStays: false);
-            // ✅ 设置图层
+            tileObj.transform.SetParent(anchor, false);
+
             int layer = (playerIndex == 0 && anchor == HandSelfPlaying)
                 ? LayerMask.NameToLayer("PlayerHandLayer")
                 : LayerMask.NameToLayer("Default");
             LayerUtil.SetLayerRecursively(tileObj, layer);
-            // ✅ 定位处理：根据是否正交相机调整布局
-            bool isOrtho = (playerIndex == 0); // 默认仅自己为正交相机
-            TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards, isOrtho);
+
+            bool isOrtho = (playerIndex == 0);
+            bool isSelfPlayer = (playerIndex == 0 && anchor == HandSelfPlaying);
+            TilePositioner.DrawPositionTile(tileObj, anchor, handIndex, totalCards, isOrtho, isSelfPlayer);
+
             return tile;
         }
+        public async UniTask<bool> DealHandCardsByDiceAsync(CancellationToken cancellationToken)
+        {
+            Transform[] anchors = InitializeHandAnchors(true);
+            int[] playerCardCounts = new int[4];
+            int banker = GameDataManager.Instance.BankerIndex;
+            int[] handTotals = InitializeHandTotals(banker);
 
+            for (int round = 0; round < 3; round++)
+            {
+                for (int p = 0; p < 4; p++)
+                {
+                    int player = (banker + p) % 4;
+                    await DealHandCardsAsync(player, 4, handTotals[player], anchors, playerCardCounts, cancellationToken);
+                }
+            }
 
+            for (int p = 0; p < 4; p++)
+            {
+                int player = (banker + p) % 4;
+                await DealHandCardsAsync(player, 1, handTotals[player], anchors, playerCardCounts, cancellationToken);
+            }
+
+            await DealHandCardsAsync(banker, 1, handTotals[banker], anchors, playerCardCounts, cancellationToken);
+
+            await UniTask.WhenAll(Enumerable.Range(0, 4).Select(p => RevealHandAsync(anchors[(banker + p) % 4])));
+
+            return true;
+        }
         private async UniTask DealHandCardsAsync(
             int player,
             int count,
             int totalCards,
-            Transform[] anchorTransforms,
+            Transform[] anchors,
             int[] playerCardCounts,
             CancellationToken cancellationToken)
         {
-            if (anchorTransforms[player] == null || playerCardCounts[player] >= totalCards)
+            if (anchors[player] == null || playerCardCounts[player] >= totalCards)
                 return;
-            Transform anchor = anchorTransforms[player];
-            bool isSelfReveal = (player == 0 && anchor == HandSelfPlaying);
 
-            bool isOrtho = (player == 0); // ✅ 自己是正交相机
+            Transform anchor = anchors[player];
+            bool isSelfReveal = (player == 0 && anchor == HandSelfPlaying);
+            bool isOrtho = (player == 0);
+            bool reverse = isSelfReveal;
 
             List<UniTask> flipTasks = new List<UniTask>();
 
@@ -171,15 +135,12 @@ namespace MahjongGame
 
                 GameObject tileObj = tile.GameObject;
                 tileObj.transform.SetParent(anchor, false);
-                // ✅ 设置图层
-                int layer = isSelfReveal
-                    ? LayerMask.NameToLayer("PlayerHandLayer")
-                    : LayerMask.NameToLayer("Default");
-                LayerUtil.SetLayerRecursively(tileObj, layer);
-                // ✅ 正确地计算偏移
-                TilePositioner.PositionTile(tileObj, anchor, playerCardCounts[player], totalCards, isOrtho);
 
-                // ✅ 启动翻牌动画
+                int layer = isSelfReveal ? LayerMask.NameToLayer("PlayerHandLayer") : LayerMask.NameToLayer("Default");
+                LayerUtil.SetLayerRecursively(tileObj, layer);
+
+                TilePositioner.PositionTile(tileObj, anchor, playerCardCounts[player], totalCards, reverse);
+
                 var flipTween = tileObj.transform.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f);
                 flipTasks.Add(flipTween.ToUniTask());
 
@@ -189,9 +150,22 @@ namespace MahjongGame
             await UniTask.WhenAll(flipTasks);
         }
 
-        public async UniTask<bool> RevealHandCardsAsync(CancellationToken cancellationToken)
+        private async UniTask RevealHandAsync(Transform anchor)
         {
-            return true;
+            var resetTasks = new List<UniTask>();
+            foreach (Transform tile in anchor)
+            {
+                resetTasks.Add(tile.DOLocalRotate(Vector3.zero, 0.1f).ToUniTask());
+            }
+            await UniTask.WhenAll(resetTasks);
+            await UniTask.Delay(100);
+
+            var flipTasks = new List<UniTask>();
+            foreach (Transform tile in anchor)
+            {
+                flipTasks.Add(tile.DOLocalRotate(new Vector3(-90, 0, 0), 0.25f).ToUniTask());
+            }
+            await UniTask.WhenAll(flipTasks);
         }
         public MahjongTile GetHandTile(int playerIndex, bool isReveal, int indexFromEnd = 0)
         {
