@@ -61,9 +61,9 @@ namespace MahjongGame
             
             deckManager = GetComponent<DeckManager>() ?? gameObject.AddComponent<DeckManager>();
             deckManager.Initialize(gameRule);
-
             rackManager = GetComponent<RackManager>() ?? gameObject.AddComponent<RackManager>();
             rackManager.Initialize(mahjongTable);
+            handManager.Initialize(mahjongTable, rackManager);
         }
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
@@ -146,10 +146,16 @@ namespace MahjongGame
         }
 
 
-        public async UniTask<MahjongTile> DrawTileAsync(int playerIndex,
-            CancellationToken cancellationToken = default)
+        public MahjongTile DrawTileAsync(int playerIndex)
         {
-            return await handManager.DrawTileAsync(playerIndex, cancellationToken);
+            MahjongTile tile = rackManager.DrawTileFromRack();
+            if (tile == null)
+            {
+                Debug.LogWarning($"No more tiles to draw for player {playerIndex}.");
+                return null;
+            }
+            handManager.DrawTileAsync(playerIndex,tile);
+            return tile;
         }
 
         public async UniTask<bool> DiscardTileAsync(MahjongTile tile, int playerIndex,
@@ -198,6 +204,12 @@ namespace MahjongGame
         {
             return handManager.GetLastNHandTiles(playerIndex, true, 2);
         }
+
+        public void RefreshHandPositions(int playerIndex, bool isReveal)
+        {
+            handManager.RefreshHandPositions(playerIndex, isReveal);
+        }
+
 
         private void ClearTiles()
         {

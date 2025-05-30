@@ -1,18 +1,18 @@
-﻿// TilePositioner.cs
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MahjongGame
 {
     public static class TilePositioner
     {
-        public static void PositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards, bool reverse = false)
+        public static void PositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards,
+            bool reverse = false, float extraOffset = 0f)
         {
             float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
             float totalWidth = (totalCards - 1) * spacing;
             float startOffset = -totalWidth / 2f;
-
-            int index = reverse ? tileIndex : (totalCards - 1 - tileIndex);
-            float offset = startOffset + index * spacing;
+            // 牌序：reverse==true（自己家）和其他玩家都按右到左
+            int index = totalCards - 1 - tileIndex;
+            float offset = startOffset + index * spacing + extraOffset;
 
             Vector3 position = anchor.TransformPoint(Vector3.right * offset);
 
@@ -21,17 +21,16 @@ namespace MahjongGame
             tile.transform.localRotation = Quaternion.Euler(0, 0, 0);
         }
 
-        public static void DrawPositionTile(GameObject tile, Transform anchor, int tileIndex, int totalCards, bool isOrtho = false, bool isSelfPlayer = false, bool reverse = false)
+        public static void DrawPositionTile(GameObject tile, Transform anchor, int totalCards,
+            bool isSelfPlayer = false)
         {
             float spacing = MahjongConfig.TileWidth + MahjongConfig.TileSpacing;
-            float rowWidth = (totalCards - 1) * spacing;
-            float start = -rowWidth / 2f;
-            int index = reverse ? tileIndex : (totalCards - 1 - tileIndex);
-            float offset = start + index * spacing;
+            float rowWidth = totalCards * spacing;
+            Debug.Log(rowWidth);
+            float offset = -rowWidth / 2;
 
             Vector3 position = anchor.position + anchor.right * offset;
-
-            if (isOrtho && isSelfPlayer)
+            if (isSelfPlayer)
             {
                 tile.transform.position = anchor.TransformPoint(Vector3.right * offset);
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
@@ -39,7 +38,6 @@ namespace MahjongGame
             }
             else
             {
-                // 其他玩家抓牌时再偏移一个宽度
                 position -= anchor.right * spacing;
                 tile.transform.position = position;
                 tile.transform.localRotation = Quaternion.Euler(-90, 0, 0);
@@ -61,7 +59,8 @@ namespace MahjongGame
                 col = discardIndex % tilesPerRow;
 
                 int invCol = (tilesPerRow - 1) - col;
-                xOffset = (invCol - (tilesPerRow / 2.0f - 0.5f)) * (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
+                xOffset = (invCol - (tilesPerRow / 2.0f - 0.5f)) *
+                          (MahjongConfig.TileWidth + MahjongConfig.TileSpacing);
                 zOffset = row * (MahjongConfig.TileHeight + MahjongConfig.TileSpacing);
             }
             else

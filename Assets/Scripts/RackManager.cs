@@ -34,7 +34,8 @@ namespace MahjongGame
             MahjongDisplay display = tileObj.GetComponent<MahjongDisplay>();
             display.BindTile(tileData); // ✅ 这里绑定 MahjongTile 数据
             tileObj.transform.SetParent(rack.transform, false);
-
+            LayerUtil.SetLayerRecursively(tileObj, LayerMask.NameToLayer("Default"));
+            tileObj.transform.localScale = Vector3.one;
             Vector3 localPos = CalculateTilePosition(rackIndex, tileIndex,17);
             tileObj.transform.localPosition = localPos;
             tileObj.transform.localRotation = GetTileRotation(rackIndex);

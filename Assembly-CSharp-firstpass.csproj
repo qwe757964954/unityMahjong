@@ -723,8 +723,68 @@
     <Reference Include="Unity.Notifications">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.Postprocessing.Runtime">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Postprocessing.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Burst.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Burst.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.AdaptivePerformance.Simulator.Extension">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Simulator.Extension.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Rider.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Rider.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.AdaptivePerformance.Simulator.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Simulator.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Config.Runtime">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Config.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Core.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.VisualScripting.Flow">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.Flow.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Mathematics.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Mathematics.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.ShaderLibrary">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Core.ShaderLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.PlasticSCM.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.PlasticSCM.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="PPv2URPConverters">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\PPv2URPConverters.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.TextMeshPro.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.VSCode.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VSCode.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Profiling.Core">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Profiling.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Notifications.Unified">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.Unified.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Burst">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Burst.dll</HintPath>
     </Reference>
     <Reference Include="UniTask.TextMeshPro">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.TextMeshPro.dll</HintPath>
@@ -738,17 +798,17 @@
     <Reference Include="UniTask.DOTween">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.DOTween.dll</HintPath>
     </Reference>
-    <Reference Include="UniTask.Addressables">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.Addressables.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.AdaptivePerformance">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.dll</HintPath>
     </Reference>
+    <Reference Include="UniTask.Addressables">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.Addressables.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.ShaderGraph.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.ShaderGraph.Editor.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.VisualStudio.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualStudio.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.AdaptivePerformance.Simulator.Extension">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Simulator.Extension.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Notifications.iOS">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.iOS.dll</HintPath>
@@ -765,35 +825,29 @@
     <Reference Include="Unity.VisualScripting.Core.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.Core.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.Rider.Editor">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Rider.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.AdaptivePerformance.Simulator.Editor">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Simulator.Editor.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UniTask.Linq">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\UniTask.Linq.dll</HintPath>
     </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.2D.Internal">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.2D.Internal.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.AdaptivePerformance.UI.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.UI.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.VisualScripting.Flow">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.Flow.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.VisualScripting.Flow.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.Flow.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipeline.Universal.ShaderLibrary">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipeline.Universal.ShaderLibrary.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Timeline">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Timeline.dll</HintPath>
     </Reference>
     <Reference Include="Unity.VisualScripting.SettingsProvider.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.SettingsProvider.Editor.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.PlasticSCM.Editor">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.PlasticSCM.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.Subsystem.Registration">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Subsystem.Registration.dll</HintPath>
@@ -807,11 +861,17 @@
     <Reference Include="Unity.Mobile.AndroidLogcat.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Mobile.AndroidLogcat.Editor.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.TextMeshPro.dll</HintPath>
+    <Reference Include="Unity.Mathematics">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Shaders">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Shaders.dll</HintPath>
     </Reference>
     <Reference Include="Unity.TextMeshPro.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.TextMeshPro.Editor.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Searcher.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Searcher.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.AdaptivePerformance.Editor">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.AdaptivePerformance.Editor.dll</HintPath>
@@ -822,27 +882,18 @@
     <Reference Include="Unity.VisualScripting.State">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VisualScripting.State.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.VSCode.Editor">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.VSCode.Editor.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.Notifications.Android">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.Android.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.Profiling.Core">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Profiling.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Unity.Notifications.Unified">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.Unified.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="Wx.csproj">
-      <Project>{3aa61121-aa76-77e5-a1e9-914efbd25e05}</Project>
-      <Name>Wx</Name>
-    </ProjectReference>
     <ProjectReference Include="WxEditor.csproj">
       <Project>{541f016e-9258-6e26-0915-c2ef4c5e0d29}</Project>
       <Name>WxEditor</Name>
+    </ProjectReference>
+    <ProjectReference Include="Wx.csproj">
+      <Project>{3aa61121-aa76-77e5-a1e9-914efbd25e05}</Project>
+      <Name>Wx</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

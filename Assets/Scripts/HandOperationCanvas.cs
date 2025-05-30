@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using System;
 using System.Threading;
 using System.Collections.Generic;
+
 namespace MahjongGame
 {
     public class HandOperationCanvas : MonoBehaviour
@@ -14,18 +15,19 @@ namespace MahjongGame
         [SerializeField] private Button sendHandCardButton;
         [SerializeField] private Button drawButton;
         [SerializeField] private Button discardButton;
+        [SerializeField] private Button RefreshButton;
         [SerializeField] private Button revealHandButton;
         [SerializeField] private Button chouPungButton;
         [SerializeField] private Button ExposedKongButton;
         [SerializeField] private Button ConcealedKongButton;
         [SerializeField] private Button SupplementKongButton;
         [SerializeField] private Button winButton;
-        
+
         [SerializeField] private InputField riceInputField;
         [SerializeField] private InputField drawPlayerIndexInputField;
         [SerializeField] private InputField discardPlayerIndexInputField;
         [SerializeField] private InputField actionPlayerIndexInputField;
-        
+
         private EnhancedMahjongManager mahjongManager;
         private GameObject selectedTile;
 
@@ -41,7 +43,7 @@ namespace MahjongGame
             GameDataManager.Instance.SetDiceValuesFromInput(riceInputField.text);
         }
 
-        private void  SetupButtonListeners()
+        private void SetupButtonListeners()
         {
             if (enabled)
             {
@@ -49,14 +51,13 @@ namespace MahjongGame
                     ShuffleAndSetDiceAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 sendHandCardButton.onClick.AddListener(() =>
                     DealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                drawButton.onClick.AddListener(() => DrawTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                drawButton.onClick.AddListener(DrawTileAsync);
                 discardButton.onClick.AddListener(() =>
                     DiscardTileAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 revealHandButton.onClick.AddListener(() =>
                     RevealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
-
-                chouPungButton.onClick.AddListener(() =>
-                    ChouActionAsync()); 
+                chouPungButton.onClick.AddListener(ChouActionAsync);
+                RefreshButton.onClick.AddListener(RefreshActionAsync);
                 ExposedKongButton.onClick.AddListener(() =>
                     PungActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 ConcealedKongButton.onClick.AddListener(() =>
@@ -70,31 +71,39 @@ namespace MahjongGame
 
         private void ChouActionAsync()
         {
-            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' },
+                StringSplitOptions.RemoveEmptyEntries);
             int n1 = 1, n2 = 1;
             if (nums.Length >= 2)
             {
                 int.TryParse(nums[0], out n1);
                 int.TryParse(nums[1], out n2);
             }
+
             List<MahjongTile> tiles = mahjongManager.GetLastTwoHandTiles(n1);
             MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
-            mahjongManager.PlaceChowPungKong(n1,n2, tiles, targetTile);
+            mahjongManager.PlaceChowPungKong(n1, n2, tiles, targetTile);
         }
+
+        private void RefreshActionAsync()
+        {
+            // Parse player index from input
+            int playerIndex = ParsePlayerIndex();
+            mahjongManager.RefreshHandPositions(playerIndex, true);
+        }
+
         private async UniTask PungActionAsync(CancellationToken cancellationToken)
         {
-            
         }
-        
+
         private async UniTask KongActionAsync(CancellationToken cancellationToken)
         {
-            
         }
-        
+
         private async UniTask WinActionAsync(CancellationToken cancellationToken)
         {
-            
         }
+
         private async UniTask ShuffleAndSetDiceAsync(CancellationToken cancellationToken)
         {
             bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
@@ -104,6 +113,7 @@ namespace MahjongGame
                     $"Failed to initialize game with dice. Check MahjongTable anchors and MahjongConfig.");
                 return;
             }
+
             mahjongManager.PlayRackAnimation();
         }
 
@@ -120,21 +130,14 @@ namespace MahjongGame
             }
         }
 
-        private async UniTask DrawTileAsync(CancellationToken cancellationToken)
+        private void DrawTileAsync()
         {
-            try
+            // Parse player index from input
+            int playerIndex = ParsePlayerIndex();
+            MahjongTile tile = mahjongManager.DrawTileAsync(playerIndex);
+            if (tile != null)
             {
-                // Parse player index from input
-                int playerIndex = ParsePlayerIndex();
-                MahjongTile tile = await mahjongManager.DrawTileAsync(playerIndex, cancellationToken);
-                if (tile != null)
-                {
-                    Debug.Log($"Drew tile for Player {playerIndex}: {tile.Suit} {tile.Number}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"DrawTileAsync failed: {ex.Message}");
+                Debug.Log($"Drew tile for Player {playerIndex}: {tile.Suit} {tile.Number}");
             }
         }
 
@@ -174,9 +177,11 @@ namespace MahjongGame
                 return;
             }
 
-            if (!int.TryParse(discardPlayerIndexInputField.text, out int playerIndex) || playerIndex < 0 || playerIndex >= 4)
+            if (!int.TryParse(discardPlayerIndexInputField.text, out int playerIndex) || playerIndex < 0 ||
+                playerIndex >= 4)
             {
-                Debug.LogWarning($"Invalid player index: {discardPlayerIndexInputField.text}. Must be between 0 and 3.");
+                Debug.LogWarning(
+                    $"Invalid player index: {discardPlayerIndexInputField.text}. Must be between 0 and 3.");
                 return;
             }
 
@@ -187,7 +192,7 @@ namespace MahjongGame
                 Debug.LogWarning($"No valid tile to discard for player {playerIndex}.");
                 return;
             }
-            
+
             // Discard the tile
             bool success = await mahjongManager.DiscardTileAsync(tile, playerIndex, cancellationToken);
             if (success)
