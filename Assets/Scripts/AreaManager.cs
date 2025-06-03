@@ -15,7 +15,7 @@ namespace MahjongGame
 
         private readonly Dictionary<int, List<ChowPungKongGroup>> chowPungKongGroups = new();
         private readonly Dictionary<int, List<float>> chowPungKongGroupWidths = new();
-
+        private readonly Dictionary<int, List<MahjongTile>> winTiles = new(); // Store hu tiles per player
         private void Start()
         {
             ValidateAnchors(chowPungKongAnchors, "ChowPungKong");
@@ -177,26 +177,49 @@ namespace MahjongGame
 
             group.Tiles.Add(tileToAdd);
         }
-
-
-        public void PlaceWinTiles(int playerIndex, List<MahjongTile> tiles)
+        public void PlaceWinTiles(int playerIndex, MahjongTile huTile)
         {
             if (!IsValidPlayer(playerIndex, winAnchors)) return;
+            if (huTile == null)
+            {
+                Debug.LogWarning("Hu tile is null.");
+                return;
+            }
 
             float tileWidth = MahjongConfig.TileWidth;
             float spacing = MahjongConfig.TileSpacing;
             var anchor = winAnchors[playerIndex];
 
-            for (int i = 0; i < tiles.Count; i++)
-            {
-                var obj = tiles[i].GameObject;
-                obj.transform.SetParent(anchor);
-                obj.transform.localScale = Vector3.one;
-                obj.transform.localPosition = new Vector3(i * (tileWidth + spacing), 0, 0);
-                obj.transform.localRotation = Quaternion.Euler(-180, -90, 0);
-            }
+            // Store the hu tile
+            if (!winTiles.ContainsKey(playerIndex))
+                winTiles[playerIndex] = new List<MahjongTile>();
+            winTiles[playerIndex].Add(huTile);
+
+            // Calculate position based on existing tiles
+            int tileCount = anchor.childCount;
+            const int maxTilesPerLayer = 5;
+            int layer = tileCount / maxTilesPerLayer; // Current row (0-based)
+            int positionInLayer = tileCount % maxTilesPerLayer; // Position within the row
+
+            float xPosition = -positionInLayer * (tileWidth + spacing);
+            float yOffset = layer * MahjongConfig.TileThickness;
+
+            var obj = huTile.GameObject;
+            obj.transform.SetParent(anchor);
+            obj.transform.localScale = Vector3.one;
+            LayerUtil.SetLayerRecursively(obj, LayerMask.NameToLayer("Default"));
+
+            // Apply transform
+            ApplyWinTileTransform(obj, xPosition, yOffset);
         }
 
+        private void ApplyWinTileTransform(GameObject obj, float xPosition, float yOffset)
+        {
+            float zOffset = 0f;
+            obj.transform.localPosition = new Vector3(xPosition, yOffset, zOffset);
+            obj.transform.localRotation = Quaternion.Euler(-180, 0, 0);
+        }
+        
         public void ClearChowPungKong(int playerIndex)
         {
             if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
@@ -214,6 +237,14 @@ namespace MahjongGame
 
             foreach (Transform child in winAnchors[playerIndex])
                 Destroy(child.gameObject);
+
+            if (winTiles.ContainsKey(playerIndex))
+                winTiles[playerIndex].Clear();
+        }
+
+        public List<MahjongTile> GetWinTiles(int playerIndex)
+        {
+            return winTiles.ContainsKey(playerIndex) ? winTiles[playerIndex] : new List<MahjongTile>();
         }
 
         private bool IsValidPlayer(int index, Transform[] anchors)

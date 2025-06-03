@@ -28,7 +28,9 @@ namespace MahjongGame
         [SerializeField] private InputField discardPlayerIndexInputField;
         [SerializeField] private InputField actionPlayerIndexInputField;
         [SerializeField] private InputField areaIndexInput;
+        [SerializeField] private InputField huPlayerIndexInput;
 
+        
         private EnhancedMahjongManager mahjongManager;
         private GameObject selectedTile;
 
@@ -62,8 +64,7 @@ namespace MahjongGame
                 ExposedKongButton.onClick.AddListener(ExposedKongActionAsync);
                 ConcealedKongButton.onClick.AddListener(ConcealedKongActionAsync);
                 SupplementKongButton.onClick.AddListener(SupplementKongActionAsync);
-                winButton.onClick.AddListener(() =>
-                    WinActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                winButton.onClick.AddListener(WinActionAsync);
             }
         }
 
@@ -138,8 +139,12 @@ namespace MahjongGame
             mahjongManager.SupplementKong(n1,groupIndex, targetTile);
         }
         
-        private async UniTask WinActionAsync(CancellationToken cancellationToken)
+        private void WinActionAsync()
         {
+            int huPlayerIndex = 0;
+            int.TryParse(huPlayerIndexInput.text, out huPlayerIndex); // 读取 actionNumberInput 的值
+            MahjongTile huTile = mahjongManager.GetLastHandTile(huPlayerIndex);
+            mahjongManager.PlaceWinTiles(huPlayerIndex, huTile);
         }
 
         private async UniTask ShuffleAndSetDiceAsync(CancellationToken cancellationToken)

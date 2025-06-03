@@ -187,6 +187,10 @@ namespace MahjongGame
         {
             areaManager.SupplementKong(playerIndex, groupIndex,tileToAdd);
         }
+        public void PlaceWinTiles(int playerIndex, MahjongTile huTile)
+        {
+            areaManager.PlaceWinTiles(playerIndex, huTile);
+        }
         public void PlayRackAnimation()
         {
             diceController.SetDiceNumbers(GameDataManager.Instance.Dice1,GameDataManager.Instance.Dice2);
