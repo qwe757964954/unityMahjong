@@ -779,11 +779,11 @@
     <Reference Include="Unity.Profiling.Core">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Profiling.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Unity.RenderPipelines.Universal.Editor">
-      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Editor.dll</HintPath>
-    </Reference>
     <Reference Include="Unity.Notifications.Unified">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.Notifications.Unified.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Editor">
+      <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.Universal.Editor.dll</HintPath>
     </Reference>
     <Reference Include="Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary">
       <HintPath>D:\UnityProj\wechat\Library\ScriptAssemblies\Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll</HintPath>

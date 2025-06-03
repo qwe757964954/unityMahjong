@@ -27,6 +27,7 @@ namespace MahjongGame
         [SerializeField] private InputField drawPlayerIndexInputField;
         [SerializeField] private InputField discardPlayerIndexInputField;
         [SerializeField] private InputField actionPlayerIndexInputField;
+        [SerializeField] private InputField areaIndexInput;
 
         private EnhancedMahjongManager mahjongManager;
         private GameObject selectedTile;
@@ -58,12 +59,9 @@ namespace MahjongGame
                     RevealHandCardsAsync(this.GetCancellationTokenOnDestroy()).Forget());
                 chouPungButton.onClick.AddListener(ChouActionAsync);
                 RefreshButton.onClick.AddListener(RefreshActionAsync);
-                ExposedKongButton.onClick.AddListener(() =>
-                    PungActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                ConcealedKongButton.onClick.AddListener(() =>
-                    KongActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
-                SupplementKongButton.onClick.AddListener(() =>
-                    KongActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
+                ExposedKongButton.onClick.AddListener(ExposedKongActionAsync);
+                ConcealedKongButton.onClick.AddListener(ConcealedKongActionAsync);
+                SupplementKongButton.onClick.AddListener(SupplementKongActionAsync);
                 winButton.onClick.AddListener(() =>
                     WinActionAsync(this.GetCancellationTokenOnDestroy()).Forget());
             }
@@ -79,7 +77,6 @@ namespace MahjongGame
                 int.TryParse(nums[0], out n1);
                 int.TryParse(nums[1], out n2);
             }
-
             List<MahjongTile> tiles = mahjongManager.GetLastTwoHandTiles(n1);
             MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
             mahjongManager.PlaceChowPungKong(n1, n2, tiles, targetTile);
@@ -92,14 +89,55 @@ namespace MahjongGame
             mahjongManager.RefreshHandPositions(playerIndex, true);
         }
 
-        private async UniTask PungActionAsync(CancellationToken cancellationToken)
+        private void ExposedKongActionAsync()
         {
+            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' },
+                StringSplitOptions.RemoveEmptyEntries);
+            int n1 = 1, n2 = 1;
+            if (nums.Length >= 2)
+            {
+                int.TryParse(nums[0], out n1);
+                int.TryParse(nums[1], out n2);
+            }
+            List<MahjongTile> tiles = mahjongManager.GetLastThreeHandTiles(n1);
+            MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
+            mahjongManager.PlaceChowPungKong(n1, n2, tiles, targetTile);
         }
 
-        private async UniTask KongActionAsync(CancellationToken cancellationToken)
+        private void ConcealedKongActionAsync()
         {
+            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' },
+                StringSplitOptions.RemoveEmptyEntries);
+            int n1 = 1, n2 = 1;
+            if (nums.Length >= 2)
+            {
+                int.TryParse(nums[0], out n1);
+                int.TryParse(nums[1], out n2);
+            }
+            List<MahjongTile> tiles = mahjongManager.GetLastFourHandTiles(n1);
+            if (tiles.Count < 4)
+            {
+                Debug.LogWarning($"Player {n1} does not have enough tiles for a concealed kong.");
+                return;
+            }
+            mahjongManager.PlaceConcealedKong(n1, tiles);
         }
-
+        private void SupplementKongActionAsync()
+        {
+            string[] nums = actionPlayerIndexInputField.text.Split(new[] { ' ', ',', ';', '，' },
+                StringSplitOptions.RemoveEmptyEntries);
+            int n1 = 1, n2 = 1;
+            if (nums.Length >= 2)
+            {
+                int.TryParse(nums[0], out n1);
+                int.TryParse(nums[1], out n2);
+            }
+            int groupIndex = 0;
+            int.TryParse(areaIndexInput.text, out groupIndex); // 读取 actionNumberInput 的值
+            MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
+            mahjongManager.SupplementKong(n1,groupIndex, targetTile);
+        }
+        
         private async UniTask WinActionAsync(CancellationToken cancellationToken)
         {
         }

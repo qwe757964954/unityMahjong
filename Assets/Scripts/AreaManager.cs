@@ -1,204 +1,230 @@
 using System.Collections.Generic;
+using System.Linq;
+
 using UnityEngine;
 
 namespace MahjongGame
 {
     public class AreaManager : MonoBehaviour
     {
-        [Header("Chow Pung Kong (Down, Left, Up, Right)")] [SerializeField]
-        public Transform[] chowPungKongTransforms = new Transform[4];
+        [Header("Chow Pung Kong Anchors (Down, Left, Up, Right)")]
+        [SerializeField] private Transform[] chowPungKongAnchors = new Transform[4];
 
-        [Header("Win (Down, Left, Up, Right)")] [SerializeField]
-        public Transform[] winTransforms = new Transform[4];
+        [Header("Win Area Anchors (Down, Left, Up, Right)")]
+        [SerializeField] private Transform[] winAnchors = new Transform[4];
 
-        private Dictionary<int, int> chowPungKongGroupCounts = new Dictionary<int, int>();
+        private readonly Dictionary<int, List<ChowPungKongGroup>> chowPungKongGroups = new();
+        private readonly Dictionary<int, List<float>> chowPungKongGroupWidths = new();
 
-        void Start()
+        private void Start()
         {
-            ValidateTransforms(chowPungKongTransforms, "ChowPungKong");
-            ValidateTransforms(winTransforms, "Win");
+            ValidateAnchors(chowPungKongAnchors, "ChowPungKong");
+            ValidateAnchors(winAnchors, "Win");
 
             for (int i = 0; i < 4; i++)
             {
-                chowPungKongGroupCounts[i] = 0;
+                chowPungKongGroups[i] = new List<ChowPungKongGroup>();
+                chowPungKongGroupWidths[i] = new List<float>();
             }
         }
 
-        private void ValidateTransforms(Transform[] transforms, string type)
+        private void ValidateAnchors(Transform[] anchors, string label)
         {
-            for (int i = 0; i < transforms.Length; i++)
+            for (int i = 0; i < anchors.Length; i++)
             {
-                if (transforms[i] == null)
-                {
-                    Debug.LogWarning($"{type} transform for player {i} is null.");
-                }
+                if (anchors[i] == null)
+                    Debug.LogWarning($"{label} anchor at index {i} is not assigned.");
             }
         }
 
-        /// <summary>
-        /// 吃/碰/明杠
-        /// </summary>
-        public void PlaceChowPungKong(int operatingPlayerIndex, int targetPlayerIndex, List<MahjongTile> tiles, MahjongTile targetTile = null)
+        public void PlaceChowPungKong(int playerIndex, int targetPlayerIndex, List<MahjongTile> tiles, MahjongTile targetTile = null)
         {
-            if (operatingPlayerIndex < 0 || operatingPlayerIndex >= chowPungKongTransforms.Length || chowPungKongTransforms[operatingPlayerIndex] == null)
-            {
-                Debug.LogWarning($"Invalid operating player index {operatingPlayerIndex} or null transform for ChowPungKong.");
-                return;
-            }
+            if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
+            if (tiles == null || tiles.Count == 0) return;
 
-            if (tiles == null || tiles.Count == 0)
-            {
-                Debug.LogWarning("Tiles list is null or empty.");
-                return;
-            }
+            var anchor = chowPungKongAnchors[playerIndex];
+            var tileWidth = MahjongConfig.TileWidth;
+            var tileHeight = MahjongConfig.TileHeight;
+            var spacing = MahjongConfig.TileSpacing;
 
-            Transform anchor = chowPungKongTransforms[operatingPlayerIndex];
-            float tileWidth = MahjongConfig.TileWidth;
-            float tileHeight = MahjongConfig.TileHeight;
-            float tileSpacing = MahjongConfig.TileSpacing;
-
-            if (!chowPungKongGroupCounts.ContainsKey(operatingPlayerIndex))
-                chowPungKongGroupCounts[operatingPlayerIndex] = 0;
-
-            int groupCount = chowPungKongGroupCounts[operatingPlayerIndex];
-            int tileCountInGroup = tiles.Count + (targetTile != null ? 1 : 0);
-            float groupWidth = tileCountInGroup * (tileWidth + tileSpacing);
-            float extraWidth = (targetTile != null) ? (tileHeight - tileWidth) : 0f;
-            float groupOffset = groupCount * (groupWidth + extraWidth + tileSpacing * 2);
-
-            int targetInsertIndex = -1;
-            if (targetTile != null && targetPlayerIndex >= 0 && targetPlayerIndex < 4)
-            {
-                int prev = (operatingPlayerIndex + 3) % 4;
-                int opp = (operatingPlayerIndex + 2) % 4;
-                int next = (operatingPlayerIndex + 1) % 4;
-
-                if (targetPlayerIndex == prev) targetInsertIndex = 0;
-                else if (targetPlayerIndex == opp) targetInsertIndex = 1;
-                else if (targetPlayerIndex == next) targetInsertIndex = 3;
-                else targetInsertIndex = tiles.Count;
-            }
-
-            List<MahjongTile> orderedTiles = new List<MahjongTile>(tiles);
+            int insertIndex = tiles.Count;
             if (targetTile != null)
             {
-                targetInsertIndex = Mathf.Clamp(targetInsertIndex, 0, orderedTiles.Count);
-                orderedTiles.Insert(targetInsertIndex, targetTile);
+                int prev = (playerIndex + 3) % 4;
+                int opp = (playerIndex + 2) % 4;
+                int next = (playerIndex + 1) % 4;
+
+                insertIndex = targetPlayerIndex == prev ? 0 : targetPlayerIndex == opp ? 1 : targetPlayerIndex == next ? 3 : tiles.Count;
             }
 
-            for (int i = 0; i < orderedTiles.Count; i++)
+            List<MahjongTile> ordered = new List<MahjongTile>(tiles);
+            if (targetTile != null)
+                ordered.Insert(Mathf.Clamp(insertIndex, 0, ordered.Count), targetTile);
+
+            float groupWidth = ordered.Count * (tileWidth + spacing) + spacing * 2;
+            if (targetTile != null) groupWidth += (tileHeight - tileWidth);
+
+            float offset = GetGroupOffset(playerIndex);
+            chowPungKongGroupWidths[playerIndex].Add(groupWidth);
+            float dz = tileHeight - tileWidth;
+
+            ChowPungKongGroup group = new ChowPungKongGroup();
+
+            for (int i = 0; i < ordered.Count; i++)
             {
-                GameObject tileObj = orderedTiles[i].GameObject;
-                tileObj.transform.SetParent(anchor);
-                LayerUtil.SetLayerRecursively(tileObj, LayerMask.NameToLayer("Default"));
+                var tile = ordered[i];
+                var obj = tile.GameObject;
+                obj.transform.SetParent(anchor);
+                obj.transform.localScale = Vector3.one;
+                LayerUtil.SetLayerRecursively(obj, LayerMask.NameToLayer("Default"));
 
-                float offset;
-                bool isTarget = (targetTile != null && orderedTiles[i] == targetTile);
+                bool isTarget = (tile == targetTile);
+                bool afterTarget = (targetTile != null && i > insertIndex);
 
-                if (isTarget)
-                {
-                    offset = groupOffset + i * (tileWidth + tileSpacing) + (tileHeight - tileWidth) / 2f;
-                    tileObj.transform.localRotation = Quaternion.Euler(-180, 90, 0); // 明杠目标竖牌
-                }
-                else
-                {
-                    int shift = (targetTile != null && i > targetInsertIndex) ? 1 : 0;
-                    offset = groupOffset + i * (tileWidth + tileSpacing) + shift * (tileHeight - tileWidth);
-                    tileObj.transform.localRotation = Quaternion.Euler(-180, 0, 0);
-                }
+                float dx = offset + i * (tileWidth + spacing);
+                if (isTarget) dx += dz / 2f;
+                if (afterTarget) dx += dz;
 
-                tileObj.transform.localPosition = new Vector3(offset, 0, 0);
+                ApplyTileTransform(obj, isTarget, dx);
+
+                group.Tiles.Add(tile);
+                if (isTarget) group.TargetTile = tile;
             }
 
-            chowPungKongGroupCounts[operatingPlayerIndex]++;
+            chowPungKongGroups[playerIndex].Add(group);
         }
-
-        /// <summary>
-        /// 暗杠（4张，2张盖住）
-        /// </summary>
+        private void ApplyTileTransform(GameObject obj, bool isTarget, float dx)
+        {
+            float dz = isTarget ? (MahjongConfig.TileHeight - MahjongConfig.TileWidth) / 2f : 0;
+            obj.transform.localRotation = isTarget ? Quaternion.Euler(-180, 90, 0) : Quaternion.Euler(-180, 0, 0);
+            obj.transform.localPosition = new Vector3(dx, 0, dz);
+        }
+        
+        private float GetGroupOffset(int playerIndex)
+        {
+            if (!chowPungKongGroupWidths.TryGetValue(playerIndex, out var widths)) return 0f;
+            return widths.Count * MahjongConfig.TileGroupSpacing + widths.Sum();
+        }
         public void PlaceConcealedKong(int playerIndex, List<MahjongTile> tiles)
         {
-            if (tiles == null || tiles.Count != 4)
-            {
-                Debug.LogWarning("Concealed Kong must have exactly 4 tiles.");
-                return;
-            }
+            if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
+            if (tiles == null || tiles.Count != 4) return;
 
-            Transform anchor = chowPungKongTransforms[playerIndex];
             float tileWidth = MahjongConfig.TileWidth;
-            float tileSpacing = MahjongConfig.TileSpacing;
+            float spacing = MahjongConfig.TileSpacing;
 
-            int groupCount = chowPungKongGroupCounts[playerIndex];
-            float groupWidth = 4 * (tileWidth + tileSpacing);
-            float groupOffset = groupCount * (groupWidth + tileSpacing * 2);
+            var anchor = chowPungKongAnchors[playerIndex];
+            float totalWidth = 4 * (tileWidth + spacing) + spacing * 2;
+            float offset = GetGroupOffset(playerIndex);
+            chowPungKongGroupWidths[playerIndex].Add(totalWidth);
 
-            for (int i = 0; i < tiles.Count; i++)
+            ChowPungKongGroup group = new ChowPungKongGroup();
+
+            for (int i = 0; i < 4; i++)
             {
-                GameObject tileObj = tiles[i].GameObject;
-                tileObj.transform.SetParent(anchor);
+                var tile = tiles[i];
+                var obj = tile.GameObject;
+                obj.transform.SetParent(anchor);
+                obj.transform.localScale = Vector3.one;
+                LayerUtil.SetLayerRecursively(obj, LayerMask.NameToLayer("Default"));
 
-                float offset = groupOffset + i * (tileWidth + tileSpacing);
-                tileObj.transform.localPosition = new Vector3(offset, 0, 0);
+                float dx = offset + i * (tileWidth + spacing);
+                obj.transform.localPosition = new Vector3(dx, 0, 0);
+                obj.transform.localRotation = (i == 1 || i == 2) ? Quaternion.Euler(0, 0, 0) : Quaternion.Euler(-180, 0, 0);
 
-                if (i == 1 || i == 2)
-                    tileObj.transform.localRotation = Quaternion.Euler(0, 0, 0); // 背面
-                else
-                    tileObj.transform.localRotation = Quaternion.Euler(-180, 0, 0); // 正面
+                group.Tiles.Add(tile);
             }
 
-            chowPungKongGroupCounts[playerIndex]++;
+            chowPungKongGroups[playerIndex].Add(group);
         }
 
         /// <summary>
-        /// 补杠（在 baseTile 上方叠加 tileToAdd）
+        /// 补杠（根据碰牌堆中的目标牌，叠放一个补牌）
         /// </summary>
-        public void SupplementKong(MahjongTile tileToAdd, MahjongTile baseTile)
+        public void SupplementKong(int playerIndex, int groupIndex, MahjongTile tileToAdd)
         {
-            if (tileToAdd == null || baseTile == null)
+            if (!chowPungKongGroups.TryGetValue(playerIndex, out var groups) ||
+                groupIndex < 0 || groupIndex >= groups.Count)
             {
-                Debug.LogWarning("SupplementKong requires both tileToAdd and baseTile.");
+                Debug.LogWarning("Invalid SupplementKong request.");
                 return;
             }
 
-            GameObject tileObj = tileToAdd.GameObject;
-            tileObj.transform.SetParent(baseTile.GameObject.transform.parent);
+            var group = groups[groupIndex];
+            var baseTile = group.TargetTile ?? group.Tiles[0]; // 优先找目标牌，否则默认首张
+
+            if (baseTile == null)
+            {
+                Debug.LogWarning("Base tile for SupplementKong is null.");
+                return;
+            }
+
+            GameObject obj = tileToAdd.GameObject;
+            obj.transform.SetParent(baseTile.GameObject.transform.parent);
+            obj.transform.localScale = Vector3.one;
+
+            // 坐标逻辑：叠加在 baseTile 上，略微后移
+            float tileHeight = MahjongConfig.TileHeight;
+            float tileWidth = MahjongConfig.TileWidth;
+            float dz = - tileWidth;
 
             Vector3 basePos = baseTile.GameObject.transform.localPosition;
-            float tileHeight = MahjongConfig.TileHeight;
+            Vector3 supplementOffset = new Vector3(0, 0, dz);
 
-            tileObj.transform.localPosition = new Vector3(basePos.x, tileHeight, basePos.z);
-            tileObj.transform.localRotation = Quaternion.Euler(-180, 0, 0);
+            obj.transform.localPosition = basePos + supplementOffset;
+            obj.transform.localRotation = Quaternion.Euler(-180, 90, 0); // 保持与目标牌一致
+            LayerUtil.SetLayerRecursively(obj, LayerMask.NameToLayer("Default"));
+
+            group.Tiles.Add(tileToAdd);
         }
 
-        /// <summary>
-        /// 胡牌展示
-        /// </summary>
+
         public void PlaceWinTiles(int playerIndex, List<MahjongTile> tiles)
         {
-            if (playerIndex < 0 || playerIndex >= winTransforms.Length || winTransforms[playerIndex] == null)
-            {
-                Debug.LogWarning($"Invalid player index {playerIndex} or null transform for Win.");
-                return;
-            }
+            if (!IsValidPlayer(playerIndex, winAnchors)) return;
 
-            Transform anchor = winTransforms[playerIndex];
             float tileWidth = MahjongConfig.TileWidth;
-            float tileSpacing = MahjongConfig.TileSpacing;
+            float spacing = MahjongConfig.TileSpacing;
+            var anchor = winAnchors[playerIndex];
 
             for (int i = 0; i < tiles.Count; i++)
             {
-                GameObject tileObj = tiles[i].GameObject;
-                tileObj.transform.SetParent(anchor);
-                float offset = i * (tileWidth + tileSpacing);
-                tileObj.transform.localPosition = new Vector3(offset, 0, 0);
-                tileObj.transform.localRotation = Quaternion.Euler(-180, -90, 0);
+                var obj = tiles[i].GameObject;
+                obj.transform.SetParent(anchor);
+                obj.transform.localScale = Vector3.one;
+                obj.transform.localPosition = new Vector3(i * (tileWidth + spacing), 0, 0);
+                obj.transform.localRotation = Quaternion.Euler(-180, -90, 0);
             }
         }
 
-        public void ResetChowPungKongCount(int playerIndex)
+        public void ClearChowPungKong(int playerIndex)
         {
-            if (chowPungKongGroupCounts.ContainsKey(playerIndex))
-                chowPungKongGroupCounts[playerIndex] = 0;
+            if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
+
+            foreach (Transform child in chowPungKongAnchors[playerIndex])
+                Destroy(child.gameObject);
+
+            chowPungKongGroups[playerIndex].Clear();
+            chowPungKongGroupWidths[playerIndex].Clear();
+        }
+
+        public void ClearWinArea(int playerIndex)
+        {
+            if (!IsValidPlayer(playerIndex, winAnchors)) return;
+
+            foreach (Transform child in winAnchors[playerIndex])
+                Destroy(child.gameObject);
+        }
+
+        private bool IsValidPlayer(int index, Transform[] anchors)
+        {
+            return index >= 0 && index < anchors.Length && anchors[index] != null;
+        }
+
+        private class ChowPungKongGroup
+        {
+            public List<MahjongTile> Tiles = new();
+            public MahjongTile TargetTile;
         }
     }
 }

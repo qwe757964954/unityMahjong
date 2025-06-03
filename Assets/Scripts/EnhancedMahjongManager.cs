@@ -174,13 +174,19 @@ namespace MahjongGame
             // return await handManager.RevealHandCardsAsync(cancellationToken);
             return true;
         }
-
         public void PlaceChowPungKong(int operatingPlayerIndex, int targetPlayerIndex, List<MahjongTile> tiles,
             MahjongTile targetTile = null)
         {
             areaManager.PlaceChowPungKong(operatingPlayerIndex,targetPlayerIndex, tiles, targetTile);
         }
-
+        public void PlaceConcealedKong(int playerIndex, List<MahjongTile> tiles)
+        {
+            areaManager.PlaceConcealedKong(playerIndex, tiles);
+        }
+        public void SupplementKong(int playerIndex, int groupIndex, MahjongTile tileToAdd)
+        {
+            areaManager.SupplementKong(playerIndex, groupIndex,tileToAdd);
+        }
         public void PlayRackAnimation()
         {
             diceController.SetDiceNumbers(GameDataManager.Instance.Dice1,GameDataManager.Instance.Dice2);
@@ -195,6 +201,10 @@ namespace MahjongGame
         public MahjongTile GetLastHandTile(int playerIndex)
         {
             return handManager.GetHandTile(playerIndex, true);
+        }
+        public List<MahjongTile> GetLastFourHandTiles(int playerIndex)
+        {
+            return handManager.GetLastNHandTiles(playerIndex, true, 4);
         }
         public List<MahjongTile> GetLastThreeHandTiles(int playerIndex)
         {
