@@ -1,21 +1,21 @@
 using System.Collections.Generic;
 using System.Linq;
-
 using UnityEngine;
 
 namespace MahjongGame
 {
     public class AreaManager : MonoBehaviour
     {
-        [Header("Chow Pung Kong Anchors (Down, Left, Up, Right)")]
-        [SerializeField] private Transform[] chowPungKongAnchors = new Transform[4];
+        [Header("Chow Pung Kong Anchors (Down, Left, Up, Right)")] [SerializeField]
+        private Transform[] chowPungKongAnchors = new Transform[4];
 
-        [Header("Win Area Anchors (Down, Left, Up, Right)")]
-        [SerializeField] private Transform[] winAnchors = new Transform[4];
+        [Header("Win Area Anchors (Down, Left, Up, Right)")] [SerializeField]
+        private Transform[] winAnchors = new Transform[4];
 
         private readonly Dictionary<int, List<ChowPungKongGroup>> chowPungKongGroups = new();
         private readonly Dictionary<int, List<float>> chowPungKongGroupWidths = new();
         private readonly Dictionary<int, List<MahjongTile>> winTiles = new(); // Store hu tiles per player
+
         private void Start()
         {
             ValidateAnchors(chowPungKongAnchors, "ChowPungKong");
@@ -37,7 +37,8 @@ namespace MahjongGame
             }
         }
 
-        public void PlaceChowPungKong(int playerIndex, int targetPlayerIndex, List<MahjongTile> tiles, MahjongTile targetTile = null)
+        public void PlaceChowPungKong(int playerIndex, int targetPlayerIndex, List<MahjongTile> tiles,
+            MahjongTile targetTile = null)
         {
             if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
             if (tiles == null || tiles.Count == 0) return;
@@ -54,7 +55,9 @@ namespace MahjongGame
                 int opp = (playerIndex + 2) % 4;
                 int next = (playerIndex + 1) % 4;
 
-                insertIndex = targetPlayerIndex == prev ? 0 : targetPlayerIndex == opp ? 1 : targetPlayerIndex == next ? 3 : tiles.Count;
+                insertIndex = targetPlayerIndex == prev ? 0 :
+                    targetPlayerIndex == opp ? 1 :
+                    targetPlayerIndex == next ? 3 : tiles.Count;
             }
 
             List<MahjongTile> ordered = new List<MahjongTile>(tiles);
@@ -93,18 +96,20 @@ namespace MahjongGame
 
             chowPungKongGroups[playerIndex].Add(group);
         }
+
         private void ApplyTileTransform(GameObject obj, bool isTarget, float dx)
         {
             float dz = isTarget ? (MahjongConfig.TileHeight - MahjongConfig.TileWidth) / 2f : 0;
             obj.transform.localRotation = isTarget ? Quaternion.Euler(-180, 90, 0) : Quaternion.Euler(-180, 0, 0);
             obj.transform.localPosition = new Vector3(dx, 0, dz);
         }
-        
+
         private float GetGroupOffset(int playerIndex)
         {
             if (!chowPungKongGroupWidths.TryGetValue(playerIndex, out var widths)) return 0f;
             return widths.Count * MahjongConfig.TileGroupSpacing + widths.Sum();
         }
+
         public void PlaceConcealedKong(int playerIndex, List<MahjongTile> tiles)
         {
             if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
@@ -130,7 +135,8 @@ namespace MahjongGame
 
                 float dx = offset + i * (tileWidth + spacing);
                 obj.transform.localPosition = new Vector3(dx, 0, 0);
-                obj.transform.localRotation = (i == 1 || i == 2) ? Quaternion.Euler(0, 0, 0) : Quaternion.Euler(-180, 0, 0);
+                obj.transform.localRotation =
+                    (i == 1 || i == 2) ? Quaternion.Euler(0, 0, 0) : Quaternion.Euler(-180, 0, 0);
 
                 group.Tiles.Add(tile);
             }
@@ -166,7 +172,7 @@ namespace MahjongGame
             // 坐标逻辑：叠加在 baseTile 上，略微后移
             float tileHeight = MahjongConfig.TileHeight;
             float tileWidth = MahjongConfig.TileWidth;
-            float dz = - tileWidth;
+            float dz = -tileWidth;
 
             Vector3 basePos = baseTile.GameObject.transform.localPosition;
             Vector3 supplementOffset = new Vector3(0, 0, dz);
@@ -177,6 +183,7 @@ namespace MahjongGame
 
             group.Tiles.Add(tileToAdd);
         }
+
         public void PlaceWinTiles(int playerIndex, MahjongTile huTile)
         {
             if (!IsValidPlayer(playerIndex, winAnchors)) return;
@@ -188,6 +195,8 @@ namespace MahjongGame
 
             float tileWidth = MahjongConfig.TileWidth;
             float spacing = MahjongConfig.TileSpacing;
+            float tileHeight = MahjongConfig.TileHeight;
+            float tileThickness = MahjongConfig.TileThickness;
             var anchor = winAnchors[playerIndex];
 
             // Store the hu tile
@@ -197,12 +206,47 @@ namespace MahjongGame
 
             // Calculate position based on existing tiles
             int tileCount = anchor.childCount;
-            const int maxTilesPerLayer = 5;
-            int layer = tileCount / maxTilesPerLayer; // Current row (0-based)
-            int positionInLayer = tileCount % maxTilesPerLayer; // Position within the row
+            float xPosition;
+            float yOffset;
+            float zOffset;
 
-            float xPosition = -positionInLayer * (tileWidth + spacing);
-            float yOffset = layer * MahjongConfig.TileThickness;
+            if (playerIndex == 1)
+            {
+                // Player 1: Stack in groups of 3 along Z-axis, then stack layers upward on Y-axis
+                const int maxTilesPerZGroup = 3;
+                int layer = tileCount / maxTilesPerZGroup; // Current Y-layer (0-based)
+                int positionInZGroup = tileCount % maxTilesPerZGroup; // Position within Z-group
+                xPosition = 0f; // Fixed X position
+                yOffset = layer * tileThickness; // Stack layers upward
+                zOffset = positionInZGroup * tileHeight; // Stack tiles along Z-axis
+            }
+            else
+            {
+                // Other players: Stack in horizontal rows with player-specific maxTilesPerLayer
+                int maxTilesPerLayer;
+                switch (playerIndex)
+                {
+                    case 0:
+                        maxTilesPerLayer = 4;
+                        break;
+                    case 1:
+                        maxTilesPerLayer = 3;
+                        break;
+                    case 2:
+                    case 3:
+                        maxTilesPerLayer = 5;
+                        break;
+                    default:
+                        maxTilesPerLayer = 5; // Fallback for unexpected playerIndex
+                        break;
+                }
+
+                int layer = tileCount / maxTilesPerLayer; // Current row (0-based)
+                int positionInLayer = tileCount % maxTilesPerLayer; // Position within the row
+                xPosition = -positionInLayer * (tileWidth + spacing);
+                yOffset = layer * tileThickness;
+                zOffset = 0f;
+            }
 
             var obj = huTile.GameObject;
             obj.transform.SetParent(anchor);
@@ -210,16 +254,15 @@ namespace MahjongGame
             LayerUtil.SetLayerRecursively(obj, LayerMask.NameToLayer("Default"));
 
             // Apply transform
-            ApplyWinTileTransform(obj, xPosition, yOffset);
+            ApplyWinTileTransform(obj, xPosition, yOffset, zOffset);
         }
 
-        private void ApplyWinTileTransform(GameObject obj, float xPosition, float yOffset)
+        private void ApplyWinTileTransform(GameObject obj, float xPosition, float yOffset, float zOffset)
         {
-            float zOffset = 0f;
             obj.transform.localPosition = new Vector3(xPosition, yOffset, zOffset);
             obj.transform.localRotation = Quaternion.Euler(-180, 0, 0);
         }
-        
+
         public void ClearChowPungKong(int playerIndex)
         {
             if (!IsValidPlayer(playerIndex, chowPungKongAnchors)) return;
