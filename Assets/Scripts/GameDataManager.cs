@@ -11,7 +11,8 @@ namespace MahjongGame
         public int Dice1 { get; private set; } = 1;
         public int Dice2 { get; private set; } = 1;
         public int BankerIndex { get; private set; } = 0;
-
+        public MahjongRegion CurrentRegion { get; private set; } = MahjongRegion.Standard;
+        public MahjongRule CurrentRule { get; private set; }
         // 私有构造函数，防止外部实例化
         private GameDataManager() { }
 
@@ -34,6 +35,12 @@ namespace MahjongGame
             Dice2 = Mathf.Clamp(dice2, 1, 6);
             BankerIndex = (Dice1 + Dice2 - 1) % 4;
             Debug.Log($"[GameDataManager] Dice: {Dice1}, {Dice2} -> BankerIndex: {BankerIndex}");
+        }
+        public void SetRegion(MahjongRegion region)
+        {
+            CurrentRegion = region;
+
+            CurrentRule = MahjongRuleFactory.CreateRule(region);
         }
     }
 }

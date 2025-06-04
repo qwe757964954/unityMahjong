@@ -9,7 +9,8 @@ namespace MahjongGame
 {
     public class HandOperationCanvas : MonoBehaviour
     {
-        [Header("UI Elements")] [SerializeField]
+        [Header("UI Elements")]
+        [SerializeField]
         private Button shuffleButton;
 
         [SerializeField] private Button sendHandCardButton;
@@ -30,7 +31,7 @@ namespace MahjongGame
         [SerializeField] private InputField areaIndexInput;
         [SerializeField] private InputField huPlayerIndexInput;
 
-        
+
         private EnhancedMahjongManager mahjongManager;
         private GameObject selectedTile;
 
@@ -136,9 +137,9 @@ namespace MahjongGame
             int groupIndex = 0;
             int.TryParse(areaIndexInput.text, out groupIndex); // 读取 actionNumberInput 的值
             MahjongTile targetTile = mahjongManager.GetLastDiscardTile(n2);
-            mahjongManager.SupplementKong(n1,groupIndex, targetTile);
+            mahjongManager.SupplementKong(n1, groupIndex, targetTile);
         }
-        
+
         private void WinActionAsync()
         {
             int huPlayerIndex = 0;
@@ -149,6 +150,8 @@ namespace MahjongGame
 
         private async UniTask ShuffleAndSetDiceAsync(CancellationToken cancellationToken)
         {
+            // 设置游戏规则
+            GameDataManager.Instance.SetRegion(MahjongRegion.Standard);
             bool success = await mahjongManager.InitializeGameAsync(cancellationToken);
             if (!success)
             {

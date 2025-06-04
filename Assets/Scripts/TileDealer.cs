@@ -1,4 +1,8 @@
-using UnityEngine; using Cysharp.Threading.Tasks; using System.Collections.Generic; using DG.Tweening; using System.Threading;
+using UnityEngine;
+using Cysharp.Threading.Tasks;
+using System.Collections.Generic;
+using DG.Tweening;
+using System.Threading;
 
 namespace MahjongGame
 {
@@ -35,13 +39,13 @@ namespace MahjongGame
 
                 GameObject tileObj = tile.GameObject;
                 tileObj.transform.SetParent(anchor, false);
+                tileObj.transform.localScale = Vector3.one;
 
                 int layer = isSelfReveal ? LayerMask.NameToLayer("PlayerHandLayer") : LayerMask.NameToLayer("Default");
                 LayerUtil.SetLayerRecursively(tileObj, layer);
 
                 // 为庄家最后一张牌添加额外的半张牌间隔
                 float extraOffset = (isBankerExtraTile && j == count - 1) ? (-MahjongConfig.TileWidth / 2f) : 0f;
-                Debug.Log($"isBankerExtraTile:{isBankerExtraTile},,j:${j},count${count},extraOffset${extraOffset}");
                 TilePositioner.PositionTile(tileObj, anchor, handState.CurrentCardCount, handState.TotalCards,
                     extraOffset);
 

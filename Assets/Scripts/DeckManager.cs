@@ -12,47 +12,23 @@ namespace MahjongGame
     public class DeckManager : MonoBehaviour
     {
         private List<MahjongTile> tileDeck = new List<MahjongTile>();
-        [SerializeField] private IMahjongRule gameRule; // Dependency for deck initialization
+        private MahjongRule gameRule; // 从GameDataManager获取
 
         public int TileCount => tileDeck.Count;
-
-        /// <summary>
-        /// Initializes the DeckManager with the specified game rule.
-        /// </summary>
-        public void Initialize(IMahjongRule rule)
-        {
-            gameRule = rule ?? new StandardMahjongRule();
-            if (gameRule == null)
-            {
-                Debug.LogError("GameRule is null in DeckManager. Disabling component.");
-                enabled = false;
-            }
-        }
-
         /// <summary>
         /// Shuffles the tile deck and initializes it with tiles based on game rules.
         /// </summary>
         public async UniTask<bool> ShuffleTilesAsync(CancellationToken cancellationToken = default)
         {
-            if (!enabled)
-            {
-                Debug.LogError("DeckManager is disabled.");
-                return false;
-            }
-
-            if (gameRule == null)
-            {
-                Debug.LogError("GameRule is null. Cannot initialize deck.");
-                return false;
-            }
-
             try
             {
+                gameRule = GameDataManager.Instance.CurrentRule;
                 ClearDeck();
-                gameRule?.InitializeTileDeck(tileDeck);
+                gameRule.InitializeTileDeck(tileDeck);
                 ShuffleTiles();
-                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.AnimationDuration), cancellationToken: cancellationToken);
-                Debug.Log($"Tiles shuffled! Total tiles: {tileDeck.Count}");
+                await UniTask.Delay(TimeSpan.FromSeconds(MahjongConfig.AnimationDuration), 
+                    cancellationToken: cancellationToken);
+                
                 return true;
             }
             catch (Exception ex)
@@ -67,11 +43,7 @@ namespace MahjongGame
         /// </summary>
         public MahjongTile DrawTile()
         {
-            if (!enabled)
-            {
-                Debug.LogWarning("DeckManager is disabled.");
-                return null;
-            }
+            if (!enabled) return null;
 
             if (tileDeck.Count == 0)
             {
@@ -89,15 +61,12 @@ namespace MahjongGame
         /// </summary>
         public void ClearDeck()
         {
-            if (!enabled)
-            {
-                Debug.LogWarning("DeckManager is disabled.");
-                return;
-            }
-
+            if (!enabled) return;
             tileDeck.Clear();
         }
-
+        /// <summary>
+        /// Fisher-Yates shuffle algorithm for shuffling tiles.
+        /// </summary>
         private void ShuffleTiles()
         {
             var random = new System.Random();

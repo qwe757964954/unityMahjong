@@ -9,37 +9,27 @@ namespace MahjongGame
     public class EnhancedMahjongManager : MonoBehaviour
     {
         [Header("Mahjong Setup")]
-        [SerializeField]
-        private GameObject mahjongPrefab;
-
+        [SerializeField] private GameObject mahjongPrefab;
         [SerializeField] private GameObject mahjongTable;
 
-        [Header("Game Rules")]
-        [SerializeField]
-        private IMahjongRule gameRule = new StandardMahjongRule();
-        
-        [SerializeField]
-        private MahjongTableTimeline tableTimeline;
         [Header("Manager References")]
-        [SerializeField]
-        private DiceController diceController;
-        [SerializeField]
-        private HandManager handManager;
-        [SerializeField]
-        private AreaManager areaManager;
-        [SerializeField]
-        private DiscardManager discardManager;
+        [SerializeField] private DiceController diceController;
+        [SerializeField] private HandManager handManager;
+        [SerializeField] private AreaManager areaManager;
+        [SerializeField] private DiscardManager discardManager;
+        [SerializeField] private MahjongTableTimeline tableTimeline;
+
         private DeckManager deckManager;
         private RackManager rackManager;
+        private MahjongRule gameRule;
+        private EnhancedObjectPool tilePool;
+        private List<MahjongTile> activeTiles = new List<MahjongTile>();
+        private GameState currentState = GameState.Idle;
         public GameObject MahjongTable
         {
             get => mahjongTable;
             set => mahjongTable = value;
         }
-
-        private EnhancedObjectPool tilePool;
-        private List<MahjongTile> activeTiles = new List<MahjongTile>();
-        private GameState currentState = GameState.Idle;
 
         private void Awake()
         {
@@ -50,20 +40,21 @@ namespace MahjongGame
         {
             try
             {
+
                 tilePool = new EnhancedObjectPool(mahjongPrefab, mahjongTable.transform, MahjongConfig.DefaultPoolSize);
+
+                deckManager = GetComponent<DeckManager>() ?? gameObject.AddComponent<DeckManager>();
+
+                rackManager = GetComponent<RackManager>() ?? gameObject.AddComponent<RackManager>();
+                rackManager.Initialize(mahjongTable);
+
+                handManager.Initialize(mahjongTable, rackManager);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Failed to initialize tilePool: {ex.Message}. Disabling component.");
+                Debug.LogError($"Failed to initialize components: {ex.Message}. Disabling component.");
                 enabled = false;
-                return;
             }
-            
-            deckManager = GetComponent<DeckManager>() ?? gameObject.AddComponent<DeckManager>();
-            deckManager.Initialize(gameRule);
-            rackManager = GetComponent<RackManager>() ?? gameObject.AddComponent<RackManager>();
-            rackManager.Initialize(mahjongTable);
-            handManager.Initialize(mahjongTable, rackManager);
         }
 
         public async UniTask<bool> InitializeGameAsync(CancellationToken cancellationToken = default)
@@ -89,6 +80,7 @@ namespace MahjongGame
 
         private async UniTask<bool> InitializeGameSafeAsync(CancellationToken cancellationToken)
         {
+            gameRule = GameDataManager.Instance.CurrentRule;
             currentState = GameState.Shuffling;
             await ShuffleTilesAsync(cancellationToken);
             if (deckManager.TileCount == 0)
@@ -120,8 +112,11 @@ namespace MahjongGame
 
         private void CreateTilesOnRacks()
         {
+
             int tilesPerRack = gameRule.TilesPerPlayer;
+
             GameObject[] racks = rackManager.CreateRackOffsets();
+
             int tileIndex = 0;
 
             int banker = GameDataManager.Instance.BankerIndex;
@@ -154,7 +149,7 @@ namespace MahjongGame
                 Debug.LogWarning($"No more tiles to draw for player {playerIndex}.");
                 return null;
             }
-            handManager.DrawTileAsync(playerIndex,tile);
+            handManager.DrawTileAsync(playerIndex, tile);
             return tile;
         }
 
@@ -177,7 +172,7 @@ namespace MahjongGame
         public void PlaceChowPungKong(int operatingPlayerIndex, int targetPlayerIndex, List<MahjongTile> tiles,
             MahjongTile targetTile = null)
         {
-            areaManager.PlaceChowPungKong(operatingPlayerIndex,targetPlayerIndex, tiles, targetTile);
+            areaManager.PlaceChowPungKong(operatingPlayerIndex, targetPlayerIndex, tiles, targetTile);
         }
         public void PlaceConcealedKong(int playerIndex, List<MahjongTile> tiles)
         {
@@ -185,7 +180,7 @@ namespace MahjongGame
         }
         public void SupplementKong(int playerIndex, int groupIndex, MahjongTile tileToAdd)
         {
-            areaManager.SupplementKong(playerIndex, groupIndex,tileToAdd);
+            areaManager.SupplementKong(playerIndex, groupIndex, tileToAdd);
         }
         public void PlaceWinTiles(int playerIndex, MahjongTile huTile)
         {
@@ -193,7 +188,7 @@ namespace MahjongGame
         }
         public void PlayRackAnimation()
         {
-            diceController.SetDiceNumbers(GameDataManager.Instance.Dice1,GameDataManager.Instance.Dice2);
+            diceController.SetDiceNumbers(GameDataManager.Instance.Dice1, GameDataManager.Instance.Dice2);
             tableTimeline.ResetAndPlayTimeline();
         }
 

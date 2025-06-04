@@ -49,6 +49,7 @@
     <Compile Include="Assets\Scripts\MahjongTableFitter.cs" />
     <Compile Include="Assets\Scripts\MahjongDisplay.cs" />
     <Compile Include="Assets\Scripts\MahjongTableTimeline.cs" />
+    <Compile Include="Assets\Scripts\MahjongRules.cs" />
     <Compile Include="Assets\Scripts\DiceController.cs" />
     <Compile Include="Assets\Scripts\TileAnimator.cs" />
     <Compile Include="Assets\Scripts\MahjongConfig.cs" />

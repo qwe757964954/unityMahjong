@@ -34,7 +34,7 @@ namespace MahjongGame
 
             GameObject tileObj = tile.GameObject;
             tileObj.transform.SetParent(handAnchor, false);
-
+            tileObj.transform.localScale = Vector3.one;
             bool isSelfPlayer = (playerIndex == 0 && handAnchor == HandSelfPlaying);
             int layer = isSelfPlayer ? LayerMask.NameToLayer("PlayerHandLayer") : LayerMask.NameToLayer("Default");
             LayerUtil.SetLayerRecursively(tileObj, layer);

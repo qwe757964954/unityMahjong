@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿// ========== MahjongConfig ==========
+using UnityEngine;
 
 namespace MahjongGame
 {
@@ -20,8 +21,9 @@ namespace MahjongGame
         // Game settings
         public static int InitialHandCount { get; } = 13;
         public static int EastExtraCard { get; } = 14;
-        public static int DefaultPoolSize { get; } = 136;
-        public static readonly Vector3 PerspectiveTileScale = new Vector3(1f, 1f, 1f); // 实际按需调整
+        public static int DefaultPoolSize { get; } = 144;
 
+        
+        public static readonly Vector3 PerspectiveTileScale = new Vector3(1f, 1f, 1f);
     }
 }
