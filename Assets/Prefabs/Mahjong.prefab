@@ -93,6 +93,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Mahjong
       objectReference: {fileID: 0}
+    - target: {fileID: 1419425599370620423, guid: ef4099d007067f8429e2f645cafc7c60,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 6528019a06837d2459be653e7033ac87, type: 2}
     - target: {fileID: 1590175284269372735, guid: ef4099d007067f8429e2f645cafc7c60,
         type: 3}
       propertyPath: m_Mesh
